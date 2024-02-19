@@ -1,0 +1,16 @@
+{
+    "name": "drupal/mc",
+    "type": "drupal-module",
+    "autoload": {
+      "psr-4": {
+        "Drupal\\mc\\": "src/"
+      }
+    },
+    "extra": {
+      "drush": {
+        "services": {
+          "drush.services.yml": "^10"
+        }
+      }
+    }
+  }

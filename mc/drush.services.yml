@@ -1,0 +1,5 @@
+services:
+  exa.commands:
+    class: \Drupal\mc\Commands\mcCommands
+    tags: 
+      - { name: drush.command }
