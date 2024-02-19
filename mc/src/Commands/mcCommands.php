@@ -2,10 +2,10 @@
 
 namespace Drupal\mc\Commands;
 
-
 use Drush\Commands\DrushCommands;
 
 class mcCommands extends DrushCommands {
+  
   /**
    * データベース接続するコマンド
    * 
@@ -18,16 +18,24 @@ class mcCommands extends DrushCommands {
       $con = \Drupal::database();
 
       // No1の処理
+      $this->output()->writeln("Processing No 1...");
       $this->processNo1($con);
+      $this->output()->writeln("No 1 processing complete.");
 
       // No2の処理
+      $this->output()->writeln("Processing No 2...");
       $this->processNo2($con);
+      $this->output()->writeln("No 2 processing complete.");
 
       // No3の処理
+      $this->output()->writeln("Processing No 3...");
       $this->processNo3($con);
+      $this->output()->writeln("No 3 processing complete.");
 
       // No4の処理
+      $this->output()->writeln("Processing No 4...");
       $this->processNo4($con);
+      $this->output()->writeln("No 4 processing complete.");
 
     } catch (\Exception $e) {
         // 例外が発生した場合の処理
@@ -53,12 +61,16 @@ class mcCommands extends DrushCommands {
         //Rule1
         $search = 'delicious';
         if (strpos($bodyValue, $search) !== false) {
+            $this->output()->writeln("Found 'delicious' in node {$entityId}, replacing with 'yummy'.");
             $this->updateNodeBody($con, $entityId, str_replace($search, 'yummy', $bodyValue));
+            $this->output()->writeln("Node {$entityId} body updated.");
         }
         //Rule2
         $search = 'https://www.drupal.org';
         if (strpos($bodyValue, $search) !== false) {
+            $this->output()->writeln("Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.");
             $this->updateNodeBody($con, $entityId, str_replace($search, 'https://WWW.DRUPAL.ORG', $bodyValue));
+            $this->output()->writeln("Node {$entityId} body updated.");
         }
     }
   }
@@ -78,7 +90,9 @@ class mcCommands extends DrushCommands {
 
         //Rule3
         $updatedTitle = str_replace('Umami', 'this site', $title);
+        $this->output()->writeln("Found 'Umami' in node {$vid} title, replacing with 'this site'.");
         $this->updateNodeTitle($con, $vid, $updatedTitle);
+        $this->output()->writeln("Node {$vid} title updated.");
     }
   }
 
@@ -101,7 +115,9 @@ class mcCommands extends DrushCommands {
         $updated_value = str_replace($search, $replacement, $field_recipe_instruction_value);
 
         // データベースを更新する
+        $this->output()->writeln("Found 'minutes' in node revision {$revision_id} recipe instruction, replacing with 'mins'.");
         $this->updateNodeFieldRecipeInstruction($con, $revision_id, $updated_value);
+        $this->output()->writeln("Node revision {$revision_id} recipe instruction updated.");
     }
   }
 
@@ -120,19 +136,27 @@ class mcCommands extends DrushCommands {
 
         //Rule4
         $updatedTitle = str_replace('delicious', 'yummy', $title);
+        $this->output()->writeln("Found 'delicious' in node {$vid} title, replacing with 'yummy'.");
         $this->updateNodeTitle($con, $vid, $updatedTitle);
+        $this->output()->writeln("Node {$vid} title updated.");
     }
   }
   
   private function updateNodeBody($con, $entityId, $bodyValue) {
+    // ログを出力: Node Body を更新する処理を開始
+    $this->output()->writeln("Updating Node Body...");
     // データベースを更新する
     $con->update('node__body')
         ->fields(['body_value' => $bodyValue])
         ->condition('entity_id', $entityId)
         ->execute();
+    // ログを出力: Node Body を更新する処理を終了
+    $this->output()->writeln("Node Body update completed.");  
   }
 
   private function updateNodeTitle($con, $vid, $title) {
+    // ログを出力: Node Title を更新する処理を開始
+    $this->output()->writeln("Updating Node Title...");
     // データベースを更新する
     $con->update('node_field_data')
         ->fields(['title' => $title])
@@ -143,9 +167,13 @@ class mcCommands extends DrushCommands {
         ->fields(['title' => $title])
         ->condition('vid', $vid)
         ->execute(); 
+    // ログを出力: Node Title を更新する処理を終了
+    $this->output()->writeln("Node Title update completed."); 
   }
 
   private function updatenodeFieldRecipeInstruction($con, $revision_id, $field_recipe_instruction_value) {
+    // ログを出力: Node Field Recipe Instruction を更新する処理を開始
+    $this->output()->writeln("Updating Node Field Recipe Instruction...");
     // データベースを更新する
     $con->update('node__field_recipe_instruction')
         ->fields(['field_recipe_instruction_value' => $field_recipe_instruction_value])
@@ -156,5 +184,7 @@ class mcCommands extends DrushCommands {
         ->fields(['field_recipe_instruction_value' => $field_recipe_instruction_value])
         ->condition('revision_id', $revision_id)
         ->execute(); 
+    // ログを出力: Node Field Recipe Instruction を更新する処理を終了
+    $this->output()->writeln("Node Field Recipe Instruction update completed.");
   }
 }
