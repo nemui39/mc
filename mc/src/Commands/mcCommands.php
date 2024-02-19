@@ -37,87 +37,92 @@ class mcCommands extends DrushCommands {
 
 
   private function processNo1($con) {
-    // 静的クエリーの発行
-    $sql = 'SELECT bundle, body_value, entity_id FROM node__body';
-    $query = $con->query($sql);
-    $nodeBodyRecords = $query->fetchAll();
+    // プレースホルダを使ってクエリを構築
+    $query = $con->select('node__body', 'n');
+    $query->fields('n', ['body_value', 'entity_id', 'bundle']);
+    // 条件を追加
+    $query->condition('bundle', ['page', 'article'], 'IN');
+    $results = $query->execute()->fetchAll();
 
-    foreach ($nodeBodyRecords as $record) {
+    foreach ($results as $record) {
         // レコードから必要なフィールド（body_value, entity_id, bundle）を取得
         $bodyValue = $record->body_value;
         $entityId = $record->entity_id;
         $bundle = $record->bundle;
 
-        if ($bundle == 'page' || $bundle == 'article') {
-            //Rule1
-            $search = 'delicious';
-            if (strpos($bodyValue, $search) !== false) {
-                $this->updateNodeBody($con, $entityId, str_replace($search, 'yummy', $bodyValue));
-            }
-            //Rule2
-            $search = 'https://www.drupal.org';
-            if (strpos($bodyValue, $search) !== false) {
-                $this->updateNodeBody($con, $entityId, str_replace($search, 'https://WWW.DRUPAL.ORG', $bodyValue));
-            }
+        //Rule1
+        $search = 'delicious';
+        if (strpos($bodyValue, $search) !== false) {
+            $this->updateNodeBody($con, $entityId, str_replace($search, 'yummy', $bodyValue));
+        }
+        //Rule2
+        $search = 'https://www.drupal.org';
+        if (strpos($bodyValue, $search) !== false) {
+            $this->updateNodeBody($con, $entityId, str_replace($search, 'https://WWW.DRUPAL.ORG', $bodyValue));
         }
     }
   }
 
   private function processNo2($con) {
-    // 静的クエリーの発行
-    $sql = 'SELECT vid, type, title FROM node_field_data';
-    $query = $con->query($sql);
-    $nodeFieldDataRecords = $query->fetchAll();
+    // プレースホルダを使ってクエリを構築
+    $query = $con->select('node_field_data', 'n');
+    $query->fields('n', ['vid', 'type', 'title']);
+    $query->condition('type', 'page');
+    $query->condition('title', '%Umami%', 'LIKE');
+    $results = $query->execute()->fetchAll();
 
-    foreach ($nodeFieldDataRecords as $record) {
+    foreach ($results as $record) {
         // レコードから必要なフィールド（vid, type, title）を取得
         $vid = $record->vid;
-        $type = $record->type;
         $title = $record->title;
+
         //Rule3
-        if ($type == 'page' && strpos($title, 'Umami') !== false) {
-            $this->updateNodeTitle($con, $vid, str_replace('Umami', 'this site', $title));
-        }
+        $updatedTitle = str_replace('Umami', 'this site', $title);
+        $this->updateNodeTitle($con, $vid, $updatedTitle);
     }
   }
 
   private function processNo3($con) {
-    // 静的クエリーの発行
-    $sql = 'SELECT revision_id, field_recipe_instruction_value FROM node__field_recipe_instruction';
-    $query = $con->query($sql);
-    $nodeFieldRecipeInstructionRecords = $query->fetchAll();
+    // プレースホルダを使ってクエリを構築
+    $query = $con->select('node__field_recipe_instruction', 'n');
+    $query->fields('n', ['revision_id', 'field_recipe_instruction_value']);
+    // 条件を追加
+    $query->condition('field_recipe_instruction_value', '%minutes%', 'LIKE');
+    $results = $query->execute()->fetchAll();
 
-    foreach ($nodeFieldRecipeInstructionRecords as $record) {
+    foreach ($results as $record) {
         // レコードから必要なフィールド（revision_id, field_recipe_instruction_value）を取得
         $revision_id = $record->revision_id;
         $field_recipe_instruction_value = $record->field_recipe_instruction_value;
         //Rule4
         $search = 'minutes';
-        if (strpos($field_recipe_instruction_value, $search) !== false) {
-            $this->updatenodeFieldRecipeInstruction($con, $revision_id, str_replace($search, 'mins', $field_recipe_instruction_value));
-        }
+        $replacement = 'mins';
+        // str_replace() を使用して文字列の置換を行う
+        $updated_value = str_replace($search, $replacement, $field_recipe_instruction_value);
+
+        // データベースを更新する
+        $this->updateNodeFieldRecipeInstruction($con, $revision_id, $updated_value);
     }
   }
 
   private function processNo4($con) {
-    // 静的クエリーの発行
-    $sql = 'SELECT vid, type, title FROM node_field_data';
-    $query = $con->query($sql);
-    $nodeFieldDataRecords = $query->fetchAll();
+    // プレースホルダを使ってクエリを構築
+    $query = $con->select('node_field_data', 'n');
+    $query->fields('n', ['vid', 'type', 'title']);
+    $query->condition('type', 'recipe', '<>');
+    $query->condition('title', '%delicious%', 'LIKE');
+    $results = $query->execute()->fetchAll();
 
-    foreach ($nodeFieldDataRecords as $record) {
+    foreach ($results as $record) {
         // レコードから必要なフィールド（vid, type, title）を取得
         $vid = $record->vid;
-        $type = $record->type;
         $title = $record->title;
-        $search = 'delicious';
 
-        if ($type !== 'recipe' && strpos($title, $search) !== false){
-          //Rule4
-          $this->updateNodeTitle($con, $vid, str_replace($search, 'yummy', $title));
-        }
-      }
+        //Rule4
+        $updatedTitle = str_replace('delicious', 'yummy', $title);
+        $this->updateNodeTitle($con, $vid, $updatedTitle);
     }
+  }
   
   private function updateNodeBody($con, $entityId, $bodyValue) {
     // データベースを更新する
