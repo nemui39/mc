@@ -3,6 +3,7 @@
 namespace Drupal\mc\Commands;
 
 use Drush\Commands\DrushCommands;
+use Drupal\Core\Database\Database;
 
 class mcCommands extends DrushCommands {
   
@@ -14,6 +15,9 @@ class mcCommands extends DrushCommands {
    */
   public function mc() {
     try {
+      // トランザクションを開始
+      $transaction = Database::getConnection()->startTransaction();
+
       // データベース接続
       $con = \Drupal::database();
 
@@ -37,9 +41,14 @@ class mcCommands extends DrushCommands {
       $this->processNo4($con);
       $this->output()->writeln("No 4 processing complete.");
 
+      // すべての処理が成功した場合はコミット
+      $transaction->commit();
+
     } catch (\Exception $e) {
-        // 例外が発生した場合の処理
-        $this->output()->writeln("An error occurred: {$e->getMessage()}");
+      // トランザクション内で例外が発生した場合はロールバック
+      $transaction->rollback();
+      // 例外が発生した場合の処理
+      $this->output()->writeln("An error occurred: {$e->getMessage()}");
     }
   }
 
@@ -53,25 +62,25 @@ class mcCommands extends DrushCommands {
     $results = $query->execute()->fetchAll();
 
     foreach ($results as $record) {
-        // レコードから必要なフィールド（body_value, entity_id, bundle）を取得
-        $bodyValue = $record->body_value;
-        $entityId = $record->entity_id;
-        $bundle = $record->bundle;
+      // レコードから必要なフィールド（body_value, entity_id, bundle）を取得
+      $bodyValue = $record->body_value;
+      $entityId = $record->entity_id;
+      $bundle = $record->bundle;
 
-        //Rule1
-        $search = 'delicious';
-        if (strpos($bodyValue, $search) !== false) {
-            $this->output()->writeln("Found 'delicious' in node {$entityId}, replacing with 'yummy'.");
-            $this->updateNodeBody($con, $entityId, str_replace($search, 'yummy', $bodyValue));
-            $this->output()->writeln("Node {$entityId} body updated.");
-        }
-        //Rule2
-        $search = 'https://www.drupal.org';
-        if (strpos($bodyValue, $search) !== false) {
-            $this->output()->writeln("Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.");
-            $this->updateNodeBody($con, $entityId, str_replace($search, 'https://WWW.DRUPAL.ORG', $bodyValue));
-            $this->output()->writeln("Node {$entityId} body updated.");
-        }
+      //Rule1
+      $search = 'delicious';
+      if (strpos($bodyValue, $search) !== false) {
+        $this->output()->writeln("Found 'delicious' in node {$entityId}, replacing with 'yummy'.");
+        $this->updateNodeBody($con, $entityId, str_replace($search, 'yummy', $bodyValue));
+        $this->output()->writeln("Node {$entityId} body updated.");
+      }
+      //Rule2
+      $search = 'https://www.drupal.org';
+      if (strpos($bodyValue, $search) !== false) {
+        $this->output()->writeln("Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.");
+        $this->updateNodeBody($con, $entityId, str_replace($search, 'https://WWW.DRUPAL.ORG', $bodyValue));
+        $this->output()->writeln("Node {$entityId} body updated.");
+      }
     }
   }
 
@@ -84,15 +93,15 @@ class mcCommands extends DrushCommands {
     $results = $query->execute()->fetchAll();
 
     foreach ($results as $record) {
-        // レコードから必要なフィールド（vid, type, title）を取得
-        $vid = $record->vid;
-        $title = $record->title;
+      // レコードから必要なフィールド（vid, type, title）を取得
+      $vid = $record->vid;
+      $title = $record->title;
 
-        //Rule3
-        $updatedTitle = str_replace('Umami', 'this site', $title);
-        $this->output()->writeln("Found 'Umami' in node {$vid} title, replacing with 'this site'.");
-        $this->updateNodeTitle($con, $vid, $updatedTitle);
-        $this->output()->writeln("Node {$vid} title updated.");
+      //Rule3
+      $updatedTitle = str_replace('Umami', 'this site', $title);
+      $this->output()->writeln("Found 'Umami' in node {$vid} title, replacing with 'this site'.");
+      $this->updateNodeTitle($con, $vid, $updatedTitle);
+      $this->output()->writeln("Node {$vid} title updated.");
     }
   }
 
@@ -105,19 +114,19 @@ class mcCommands extends DrushCommands {
     $results = $query->execute()->fetchAll();
 
     foreach ($results as $record) {
-        // レコードから必要なフィールド（revision_id, field_recipe_instruction_value）を取得
-        $revision_id = $record->revision_id;
-        $field_recipe_instruction_value = $record->field_recipe_instruction_value;
-        //Rule4
-        $search = 'minutes';
-        $replacement = 'mins';
-        // str_replace() を使用して文字列の置換を行う
-        $updated_value = str_replace($search, $replacement, $field_recipe_instruction_value);
+      // レコードから必要なフィールド（revision_id, field_recipe_instruction_value）を取得
+      $revision_id = $record->revision_id;
+      $field_recipe_instruction_value = $record->field_recipe_instruction_value;
+      //Rule4
+      $search = 'minutes';
+      $replacement = 'mins';
+      // str_replace() を使用して文字列の置換を行う
+      $updated_value = str_replace($search, $replacement, $field_recipe_instruction_value);
 
-        // データベースを更新する
-        $this->output()->writeln("Found 'minutes' in node revision {$revision_id} recipe instruction, replacing with 'mins'.");
-        $this->updateNodeFieldRecipeInstruction($con, $revision_id, $updated_value);
-        $this->output()->writeln("Node revision {$revision_id} recipe instruction updated.");
+      // データベースを更新する
+      $this->output()->writeln("Found 'minutes' in node revision {$revision_id} recipe instruction, replacing with 'mins'.");
+      $this->updateNodeFieldRecipeInstruction($con, $revision_id, $updated_value);
+      $this->output()->writeln("Node revision {$revision_id} recipe instruction updated.");
     }
   }
 
@@ -130,15 +139,15 @@ class mcCommands extends DrushCommands {
     $results = $query->execute()->fetchAll();
 
     foreach ($results as $record) {
-        // レコードから必要なフィールド（vid, type, title）を取得
-        $vid = $record->vid;
-        $title = $record->title;
+      // レコードから必要なフィールド（vid, type, title）を取得
+      $vid = $record->vid;
+      $title = $record->title;
 
-        //Rule4
-        $updatedTitle = str_replace('delicious', 'yummy', $title);
-        $this->output()->writeln("Found 'delicious' in node {$vid} title, replacing with 'yummy'.");
-        $this->updateNodeTitle($con, $vid, $updatedTitle);
-        $this->output()->writeln("Node {$vid} title updated.");
+      //Rule4
+      $updatedTitle = str_replace('delicious', 'yummy', $title);
+      $this->output()->writeln("Found 'delicious' in node {$vid} title, replacing with 'yummy'.");
+      $this->updateNodeTitle($con, $vid, $updatedTitle);
+      $this->output()->writeln("Node {$vid} title updated.");
     }
   }
   
