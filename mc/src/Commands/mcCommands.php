@@ -33,6 +33,10 @@ class mcCommands extends DrushCommands {
       $this->output()->writeln("No 1 processing complete.");
       // コミット
       $transaction->commit();
+      //継続するか聞く
+      if (!$this->shouldContinue()) {
+        return;
+      }
 
       // トランザクションを開始
       $transaction = Database::getConnection()->startTransaction();
@@ -44,6 +48,10 @@ class mcCommands extends DrushCommands {
       $this->output()->writeln("No 2 processing complete.");
       // コミット
       $transaction->commit();
+      //継続するか聞く
+      if (!$this->shouldContinue()) {
+        return;
+      }
       
       // トランザクションを開始
       $transaction = Database::getConnection()->startTransaction();
@@ -55,6 +63,10 @@ class mcCommands extends DrushCommands {
       $this->output()->writeln("No 3 processing complete.");
       // コミット
       $transaction->commit();
+      //継続するか聞く
+      if (!$this->shouldContinue()) {
+        return;
+      }
       
       // トランザクションを開始
       $transaction = Database::getConnection()->startTransaction();
@@ -66,9 +78,14 @@ class mcCommands extends DrushCommands {
       $this->output()->writeln("No 4 processing complete.");
       // コミット
       $transaction->commit();
+      //継続するか聞く
+      if (!$this->shouldContinue()) {
+        return;
+      }
 
       // 処理が完了したので、レジューム情報をクリア
       $this->clearResume();
+      
     } catch (\Exception $e) {
       // トランザクション内で例外が発生した場合はロールバック
       $transaction->rollback();
@@ -76,6 +93,11 @@ class mcCommands extends DrushCommands {
       // エラーが発生したので、レジューム情報を保存
       $this->saveResume();
     }
+  }
+
+  private function shouldContinue() {
+    $answer = $this->io()->confirm("Continue to the next process?", TRUE);
+    return $answer;
   }
 
   // レジューム情報を保存
