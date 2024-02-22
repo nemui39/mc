@@ -6,10 +6,6 @@ use Drush\Commands\DrushCommands;
 use Drupal\Core\Database\Database;
 
 class mcCommands extends DrushCommands {
-
-  // レジューム用のプロセス名を保持する変数
-  private $resumeProcess;
-
   /**
    * データベース接続するコマンド
    * 
@@ -18,77 +14,45 @@ class mcCommands extends DrushCommands {
    */
   public function mc() {
     try {
-      // レジューム機能を確認
-      $this->checkResume();
-      // トランザクションを開始
-      $transaction = Database::getConnection()->startTransaction();
       // データベース接続
       $con = \Drupal::database();
 
-      // プロセス名を設定
-      $this->resumeProcess = "No1";
       // No1の処理
       $this->output()->writeln("Processing No 1...");
       $this->processNo1($con);
       $this->output()->writeln("No 1 processing complete.");
-      // コミット
-      $transaction->commit();
+
       //継続するか聞く
       if (!$this->shouldContinue()) {
         return;
       }
 
-      // トランザクションを開始
-      $transaction = Database::getConnection()->startTransaction();
-      // プロセス名を設定
-      $this->resumeProcess = "No2";
       // No2の処理
       $this->output()->writeln("Processing No 2...");
       $this->processNo2($con);
       $this->output()->writeln("No 2 processing complete.");
-      // コミット
-      $transaction->commit();
-      //継続するか聞く
-      if (!$this->shouldContinue()) {
-        return;
-      }
-      
-      // トランザクションを開始
-      $transaction = Database::getConnection()->startTransaction();
-      // プロセス名を設定
-      $this->resumeProcess = "No3";
-      // No3の処理
-      $this->output()->writeln("Processing No 3...");
-      $this->processNo3($con);
-      $this->output()->writeln("No 3 processing complete.");
-      // コミット
-      $transaction->commit();
-      //継続するか聞く
-      if (!$this->shouldContinue()) {
-        return;
-      }
-      
-      // トランザクションを開始
-      $transaction = Database::getConnection()->startTransaction();
-      // プロセス名を設定
-      $this->resumeProcess = "No4";
-      // No4の処理
-      $this->output()->writeln("Processing No 4...");
-      $this->processNo4($con);
-      $this->output()->writeln("No 4 processing complete.");
-      // コミット
-      $transaction->commit();
+
       //継続するか聞く
       if (!$this->shouldContinue()) {
         return;
       }
 
-      // 処理が完了したので、レジューム情報をクリア
-      $this->clearResume();
+      // No3の処理
+      $this->output()->writeln("Processing No 3...");
+      $this->processNo3($con);
+      $this->output()->writeln("No 3 processing complete.");
+ 
+      //継続するか聞く
+      if (!$this->shouldContinue()) {
+        return;
+      }
       
+      // No4の処理
+      $this->output()->writeln("Processing No 4...");
+      $this->processNo4($con);
+      $this->output()->writeln("No 4 processing complete.");
+     
     } catch (\Exception $e) {
-      // トランザクション内で例外が発生した場合はロールバック
-      $transaction->rollback();
       $this->output()->writeln("An error occurred: {$e->getMessage()}");
       // エラーが発生したので、レジューム情報を保存
       $this->saveResume();
@@ -96,26 +60,8 @@ class mcCommands extends DrushCommands {
   }
 
   private function shouldContinue() {
-    $answer = $this->io()->confirm("Continue to the next process?", TRUE);
+    $answer = $this->io()->confirm("Continue to the next process?", False);
     return $answer;
-  }
-
-  // レジューム情報を保存
-  private function saveResume() {
-    \Drupal::state()->set('mc.resumeProcess', $this->resumeProcess);
-  }
-
-  // レジューム情報をクリア
-  private function clearResume() {
-    \Drupal::state()->delete('mc.resumeProcess');
-  }
-
-  // レジューム情報をチェック
-  private function checkResume() {
-    $this->resumeProcess = \Drupal::state()->get('mc.resumeProcess');
-    if (!empty($this->resumeProcess)) {
-      $this->output()->writeln("Resuming from process: {$this->resumeProcess}");
-    }
   }
 
   private function processNo1($con) {
@@ -125,26 +71,32 @@ class mcCommands extends DrushCommands {
     // 条件を追加
     $query->condition('bundle', ['page', 'article'], 'IN');
     $results = $query->execute()->fetchAll();
+    
+    if ($results === null) {
+      // null の場合の処理
+      // 例: メッセージを出力してログに記録する
+      $this->output()->writeln("The result is null.");
+    } else {
+      foreach ($results as $record) {
+        // レコードから必要なフィールド（body_value, entity_id, bundle）を取得
+        $bodyValue = $record->body_value;
+        $entityId = $record->entity_id;
+        $bundle = $record->bundle;
 
-    foreach ($results as $record) {
-      // レコードから必要なフィールド（body_value, entity_id, bundle）を取得
-      $bodyValue = $record->body_value;
-      $entityId = $record->entity_id;
-      $bundle = $record->bundle;
-
-      //Rule1
-      $search = 'delicious';
-      if (strpos($bodyValue, $search) !== false) {
-        $this->output()->writeln("Found 'delicious' in node {$entityId}, replacing with 'yummy'.");
-        $this->updateNodeBody($con, $entityId, str_replace($search, 'yummy', $bodyValue));
-        $this->output()->writeln("Node {$entityId} body updated.");
-      }
-      //Rule2
-      $search = 'https://www.drupal.org';
-      if (strpos($bodyValue, $search) !== false) {
-        $this->output()->writeln("Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.");
-        $this->updateNodeBody($con, $entityId, str_replace($search, 'https://WWW.DRUPAL.ORG', $bodyValue));
-        $this->output()->writeln("Node {$entityId} body updated.");
+        //Rule1
+        $search = 'delicious';
+        if (strpos($bodyValue, $search) !== false) {
+          $this->output()->writeln("Found 'delicious' in node {$entityId}, replacing with 'yummy'.");
+          $this->updateNodeBody($con, $entityId, str_replace($search, 'yummy', $bodyValue));
+          $this->output()->writeln("Node {$entityId} body updated.");
+        }
+        //Rule2
+        $search = 'https://www.drupal.org';
+        if (strpos($bodyValue, $search) !== false) {
+          $this->output()->writeln("Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.");
+          $this->updateNodeBody($con, $entityId, str_replace($search, 'https://WWW.DRUPAL.ORG', $bodyValue));
+          $this->output()->writeln("Node {$entityId} body updated.");
+        }
       }
     }
   }
@@ -157,16 +109,22 @@ class mcCommands extends DrushCommands {
     $query->condition('title', '%Umami%', 'LIKE');
     $results = $query->execute()->fetchAll();
 
-    foreach ($results as $record) {
-      // レコードから必要なフィールド（vid, type, title）を取得
-      $vid = $record->vid;
-      $title = $record->title;
+    if ($results === null) {
+      // null の場合の処理
+      // 例: メッセージを出力してログに記録する
+      $this->output()->writeln("The result is null.");
+    } else {
+      foreach ($results as $record) {
+        // レコードから必要なフィールド（vid, type, title）を取得
+        $vid = $record->vid;
+        $title = $record->title;
 
-      //Rule3
-      $updatedTitle = str_replace('Umami', 'this site', $title);
-      $this->output()->writeln("Found 'Umami' in node {$vid} title, replacing with 'this site'.");
-      $this->updateNodeTitle($con, $vid, $updatedTitle);
-      $this->output()->writeln("Node {$vid} title updated.");
+        //Rule3
+        $updatedTitle = str_replace('Umami', 'this site', $title);
+        $this->output()->writeln("Found 'Umami' in node {$vid} title, replacing with 'this site'.");
+        $this->updateNodeTitle($con, $vid, $updatedTitle);
+        $this->output()->writeln("Node {$vid} title updated.");
+      }
     }
   }
 
@@ -178,20 +136,26 @@ class mcCommands extends DrushCommands {
     $query->condition('field_recipe_instruction_value', '%minutes%', 'LIKE');
     $results = $query->execute()->fetchAll();
 
-    foreach ($results as $record) {
-      // レコードから必要なフィールド（revision_id, field_recipe_instruction_value）を取得
-      $revision_id = $record->revision_id;
-      $field_recipe_instruction_value = $record->field_recipe_instruction_value;
-      //Rule4
-      $search = 'minutes';
-      $replacement = 'mins';
-      // str_replace() を使用して文字列の置換を行う
-      $updated_value = str_replace($search, $replacement, $field_recipe_instruction_value);
+    if ($results === null) {
+      // null の場合の処理
+      // 例: メッセージを出力してログに記録する
+      $this->output()->writeln("The result is null.");
+    } else {
+      foreach ($results as $record) {
+        // レコードから必要なフィールド（revision_id, field_recipe_instruction_value）を取得
+        $revision_id = $record->revision_id;
+        $field_recipe_instruction_value = $record->field_recipe_instruction_value;
+        //Rule4
+        $search = 'minutes';
+        $replacement = 'mins';
+        // str_replace() を使用して文字列の置換を行う
+        $updated_value = str_replace($search, $replacement, $field_recipe_instruction_value);
 
-      // データベースを更新する
-      $this->output()->writeln("Found 'minutes' in node revision {$revision_id} recipe instruction, replacing with 'mins'.");
-      $this->updateNodeFieldRecipeInstruction($con, $revision_id, $updated_value);
-      $this->output()->writeln("Node revision {$revision_id} recipe instruction updated.");
+        // データベースを更新する
+        $this->output()->writeln("Found 'minutes' in node revision {$revision_id} recipe instruction, replacing with 'mins'.");
+        $this->updateNodeFieldRecipeInstruction($con, $revision_id, $updated_value);
+        $this->output()->writeln("Node revision {$revision_id} recipe instruction updated.");
+      }
     }
   }
 
@@ -203,16 +167,22 @@ class mcCommands extends DrushCommands {
     $query->condition('title', '%delicious%', 'LIKE');
     $results = $query->execute()->fetchAll();
 
-    foreach ($results as $record) {
-      // レコードから必要なフィールド（vid, type, title）を取得
-      $vid = $record->vid;
-      $title = $record->title;
+    if ($results === null) {
+      // null の場合の処理
+      // 例: メッセージを出力してログに記録する
+      $this->output()->writeln("The result is null.");
+      } else {
+      foreach ($results as $record) {
+        // レコードから必要なフィールド（vid, type, title）を取得
+        $vid = $record->vid;
+        $title = $record->title;
 
-      //Rule4
-      $updatedTitle = str_replace('delicious', 'yummy', $title);
-      $this->output()->writeln("Found 'delicious' in node {$vid} title, replacing with 'yummy'.");
-      $this->updateNodeTitle($con, $vid, $updatedTitle);
-      $this->output()->writeln("Node {$vid} title updated.");
+        //Rule4
+        $updatedTitle = str_replace('delicious', 'yummy', $title);
+        $this->output()->writeln("Found 'delicious' in node {$vid} title, replacing with 'yummy'.");
+        $this->updateNodeTitle($con, $vid, $updatedTitle);
+        $this->output()->writeln("Node {$vid} title updated.");
+      }
     }
   }
   
@@ -245,7 +215,7 @@ class mcCommands extends DrushCommands {
     $this->output()->writeln("Node Title update completed."); 
   }
 
-  private function updatenodeFieldRecipeInstruction($con, $revision_id, $field_recipe_instruction_value) {
+  private function updateNodeFieldRecipeInstruction($con, $revision_id, $field_recipe_instruction_value) {
     // ログを出力: Node Field Recipe Instruction を更新する処理を開始
     $this->output()->writeln("Updating Node Field Recipe Instruction...");
     // データベースを更新する
