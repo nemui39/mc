@@ -3,9 +3,10 @@
 namespace Drupal\mc\Commands;
 
 use Drush\Commands\DrushCommands;
-use Drupal\Core\Database\Database;
 
 class mcCommands extends DrushCommands {
+
+  private $resumeProcess;
   /**
    * データベース接続するコマンド
    * 
@@ -14,43 +15,54 @@ class mcCommands extends DrushCommands {
    */
   public function mc() {
     try {
+      // レジューム情報をチェック
+      $this->checkResume();
       // データベース接続
       $con = \Drupal::database();
 
-      // No1の処理
-      $this->output()->writeln("Processing No 1...");
-      $this->processNo1($con);
-      $this->output()->writeln("No 1 processing complete.");
 
-      //継続するか聞く
-      if (!$this->shouldContinue()) {
-        return;
+      // 続きから処理を開始
+      if ($this->resumeProcess === null) {
+        // レジューム情報がない場合、No1から処理を開始
+        $this->output()->writeln("Processing No 1...");
+        $this->processNo1($con);
+        $this->output()->writeln("No 1 processing complete.");
+        $this->saveResume("No2");
+        
+      } 
+      if ($this->resumeProcess === "No2") {
+        //継続するか聞く
+        if (!$this->shouldContinue()) {
+          return;
+        }        
+        // No2の処理
+        $this->output()->writeln("Processing No 2...");
+        $this->processNo2($con);
+        $this->output()->writeln("No 2 processing complete.");
+        $this->saveResume("No3");
+      } 
+      if ($this->resumeProcess === "No3") {
+        //継続するか聞く
+        if (!$this->shouldContinue()) {
+          return;
+        }        
+        // No3の処理
+        $this->output()->writeln("Processing No 3...");
+        $this->processNo3($con);
+        $this->output()->writeln("No 3 processing complete.");
+        $this->saveResume("No4");
+      } 
+      if ($this->resumeProcess === "No4") {
+        //継続するか聞く
+        if (!$this->shouldContinue()) {
+          return;
+        }
+        // No4の処理
+        $this->output()->writeln("Processing No 4...");
+        $this->processNo4($con);
+        $this->output()->writeln("No 4 processing complete.");
+        $this->clearResume();
       }
-
-      // No2の処理
-      $this->output()->writeln("Processing No 2...");
-      $this->processNo2($con);
-      $this->output()->writeln("No 2 processing complete.");
-
-      //継続するか聞く
-      if (!$this->shouldContinue()) {
-        return;
-      }
-
-      // No3の処理
-      $this->output()->writeln("Processing No 3...");
-      $this->processNo3($con);
-      $this->output()->writeln("No 3 processing complete.");
- 
-      //継続するか聞く
-      if (!$this->shouldContinue()) {
-        return;
-      }
-      
-      // No4の処理
-      $this->output()->writeln("Processing No 4...");
-      $this->processNo4($con);
-      $this->output()->writeln("No 4 processing complete.");
      
     } catch (\Exception $e) {
       $this->output()->writeln("An error occurred: {$e->getMessage()}");
@@ -62,6 +74,26 @@ class mcCommands extends DrushCommands {
   private function shouldContinue() {
     $answer = $this->io()->confirm("Continue to the next process?", False);
     return $answer;
+  }
+
+  // レジューム情報を保存
+  private function saveResume($process = null) {
+    if ($process) {
+      $this->resumeProcess = $process;
+      \Drupal::state()->set('mc.resumeProcess', $this->resumeProcess);
+    } else {
+      \Drupal::state()->delete('mc.resumeProcess');
+    }
+  }
+
+  // レジューム情報をクリア
+  private function clearResume() {
+    \Drupal::state()->delete('mc.resumeProcess');
+  }
+
+  // レジューム情報をチェック
+  private function checkResume() {
+    $this->resumeProcess = \Drupal::state()->get('mc.resumeProcess');
   }
 
   private function processNo1($con) {
