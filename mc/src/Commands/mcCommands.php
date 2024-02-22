@@ -6,7 +6,10 @@ use Drush\Commands\DrushCommands;
 use Drupal\Core\Database\Database;
 
 class mcCommands extends DrushCommands {
-  
+
+  // レジューム用のプロセス名を保持する変数
+  private $resumeProcess;
+
   /**
    * データベース接続するコマンド
    * 
@@ -15,43 +18,83 @@ class mcCommands extends DrushCommands {
    */
   public function mc() {
     try {
+      // レジューム機能を確認
+      $this->checkResume();
       // トランザクションを開始
       $transaction = Database::getConnection()->startTransaction();
-
       // データベース接続
       $con = \Drupal::database();
 
+      // プロセス名を設定
+      $this->resumeProcess = "No1";
       // No1の処理
       $this->output()->writeln("Processing No 1...");
       $this->processNo1($con);
       $this->output()->writeln("No 1 processing complete.");
+      // コミット
+      $transaction->commit();
 
+      // トランザクションを開始
+      $transaction = Database::getConnection()->startTransaction();
+      // プロセス名を設定
+      $this->resumeProcess = "No2";
       // No2の処理
       $this->output()->writeln("Processing No 2...");
       $this->processNo2($con);
       $this->output()->writeln("No 2 processing complete.");
-
+      // コミット
+      $transaction->commit();
+      
+      // トランザクションを開始
+      $transaction = Database::getConnection()->startTransaction();
+      // プロセス名を設定
+      $this->resumeProcess = "No3";
       // No3の処理
       $this->output()->writeln("Processing No 3...");
       $this->processNo3($con);
       $this->output()->writeln("No 3 processing complete.");
-
+      // コミット
+      $transaction->commit();
+      
+      // トランザクションを開始
+      $transaction = Database::getConnection()->startTransaction();
+      // プロセス名を設定
+      $this->resumeProcess = "No4";
       // No4の処理
       $this->output()->writeln("Processing No 4...");
       $this->processNo4($con);
       $this->output()->writeln("No 4 processing complete.");
-
-      // すべての処理が成功した場合はコミット
+      // コミット
       $transaction->commit();
 
+      // 処理が完了したので、レジューム情報をクリア
+      $this->clearResume();
     } catch (\Exception $e) {
       // トランザクション内で例外が発生した場合はロールバック
       $transaction->rollback();
-      // 例外が発生した場合の処理
       $this->output()->writeln("An error occurred: {$e->getMessage()}");
+      // エラーが発生したので、レジューム情報を保存
+      $this->saveResume();
     }
   }
 
+  // レジューム情報を保存
+  private function saveResume() {
+    \Drupal::state()->set('mc.resumeProcess', $this->resumeProcess);
+  }
+
+  // レジューム情報をクリア
+  private function clearResume() {
+    \Drupal::state()->delete('mc.resumeProcess');
+  }
+
+  // レジューム情報をチェック
+  private function checkResume() {
+    $this->resumeProcess = \Drupal::state()->get('mc.resumeProcess');
+    if (!empty($this->resumeProcess)) {
+      $this->output()->writeln("Resuming from process: {$this->resumeProcess}");
+    }
+  }
 
   private function processNo1($con) {
     // プレースホルダを使ってクエリを構築
