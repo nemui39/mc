@@ -8,7 +8,20 @@ class mcCommands extends DrushCommands {
 
   private $resumeProcess;
   /**
-   * データベース接続するコマンド
+   * 4つのコンテンツをルールに従い編集するコマンド
+   * 編集ルール
+   * No.   対象URL　　　　　　　　　対象コンテンツタイプ　対象フィールド　    文字列置換ルール
+   * No.1    /*　　　　　　　　　　　基本ページ、記事　　　body               1,2
+   * No.2    /*　　　　　　　　　　　基本ページ           Title              3
+   * No.3    /recipes/*　　　　　　　Recipe            Recipe instruction  4
+   * No.4    /recipes/*を除く全て   すべて               Title             1
+   * 
+   * 文字列置換ルール
+   * No.   変換前　                  変換後
+   * 1     delicious                yummy
+   * 2     https://www.drupal.org   https://WWW.DRUPAL.ORG
+   * 3     Umami                    this site
+   * 4     minutes                  mins
    * 
    * @command mc:dbcon
    * @aliases dbcon
@@ -23,7 +36,7 @@ class mcCommands extends DrushCommands {
 
       // 続きから処理を開始
       if ($this->resumeProcess === null) {
-        // レジューム情報がない場合、No1から処理を開始
+        // レジューム情報がない場合、編集ルールNo1から処理を開始
         $this->output()->writeln("Processing No 1...");
         $this->processNo1($con);
         $this->output()->writeln("No 1 processing complete.");
@@ -35,29 +48,29 @@ class mcCommands extends DrushCommands {
         if (!$this->shouldContinue()) {
           return;
         }        
-        // No2の処理
+        // 編集ルールNo2の処理
         $this->output()->writeln("Processing No 2...");
         $this->processNo2($con);
         $this->output()->writeln("No 2 processing complete.");
         $this->saveResume("No3");
       } 
       if ($this->resumeProcess === "No3") {
-        //継続するか聞く
+        //　継続するか聞く
         if (!$this->shouldContinue()) {
           return;
         }        
-        // No3の処理
+        // 編集ルールNo3の処理
         $this->output()->writeln("Processing No 3...");
         $this->processNo3($con);
         $this->output()->writeln("No 3 processing complete.");
         $this->saveResume("No4");
       } 
       if ($this->resumeProcess === "No4") {
-        //継続するか聞く
+        //　継続するか聞く
         if (!$this->shouldContinue()) {
           return;
         }
-        // No4の処理
+        // 編集ルールNo4の処理
         $this->output()->writeln("Processing No 4...");
         $this->processNo4($con);
         $this->output()->writeln("No 4 processing complete.");
@@ -115,14 +128,14 @@ class mcCommands extends DrushCommands {
         $entityId = $record->entity_id;
         $bundle = $record->bundle;
 
-        //Rule1
+        //　文字列置換ルール1
         $search = 'delicious';
         if (strpos($bodyValue, $search) !== false) {
           $this->output()->writeln("Found 'delicious' in node {$entityId}, replacing with 'yummy'.");
           $this->updateNodeBody($con, $entityId, str_replace($search, 'yummy', $bodyValue));
           $this->output()->writeln("Node {$entityId} body updated.");
         }
-        //Rule2
+        //　文字列置換ルール2
         $search = 'https://www.drupal.org';
         if (strpos($bodyValue, $search) !== false) {
           $this->output()->writeln("Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.");
@@ -151,7 +164,7 @@ class mcCommands extends DrushCommands {
         $vid = $record->vid;
         $title = $record->title;
 
-        //Rule3
+        //　文字列置換ルール3
         $updatedTitle = str_replace('Umami', 'this site', $title);
         $this->output()->writeln("Found 'Umami' in node {$vid} title, replacing with 'this site'.");
         $this->updateNodeTitle($con, $vid, $updatedTitle);
@@ -177,7 +190,7 @@ class mcCommands extends DrushCommands {
         // レコードから必要なフィールド（revision_id, field_recipe_instruction_value）を取得
         $revision_id = $record->revision_id;
         $field_recipe_instruction_value = $record->field_recipe_instruction_value;
-        //Rule4
+        //　文字列置換ルール4
         $search = 'minutes';
         $replacement = 'mins';
         // str_replace() を使用して文字列の置換を行う
@@ -209,7 +222,7 @@ class mcCommands extends DrushCommands {
         $vid = $record->vid;
         $title = $record->title;
 
-        //Rule4
+        //　文字列置換ルール1
         $updatedTitle = str_replace('delicious', 'yummy', $title);
         $this->output()->writeln("Found 'delicious' in node {$vid} title, replacing with 'yummy'.");
         $this->updateNodeTitle($con, $vid, $updatedTitle);
