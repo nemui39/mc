@@ -1,5 +1,6 @@
 {
     "name": "drupal/mc",
+    "description": "課題用のdrushコマンドです。4つのコンテンツ編集をルールに従い行います。",
     "type": "drupal-module",
     "autoload": {
       "psr-4": {
