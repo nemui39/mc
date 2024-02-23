@@ -10,11 +10,11 @@ class mcCommands extends DrushCommands {
   /**
    * 4つのコンテンツをルールに従い編集するコマンド
    * 編集ルール
-   * No.   対象URL　　　　　　　　　対象コンテンツタイプ　対象フィールド　    文字列置換ルール
-   * No.1    /*　　　　　　　　　　　基本ページ、記事　　　body               1,2
-   * No.2    /*　　　　　　　　　　　基本ページ           Title              3
-   * No.3    /recipes/*　　　　　　　Recipe            Recipe instruction  4
-   * No.4    /recipes/*を除く全て   すべて               Title             1
+   * No.   対象URL　　　　　　　　対象コンテンツタイプ　対象フィールド　    文字列置換ルール
+   * 1    /*　　　　　　　　　　　基本ページ、記事　　　body               1,2
+   * 2    /*　　　　　　　　　　　基本ページ           Title              3
+   * 3    /recipes/*　　　　　　　Recipe            Recipe instruction  4
+   * 4    /recipes/*を除く全て   すべて               Title             1
    * 
    * 文字列置換ルール
    * No.   変換前　                  変換後
@@ -40,11 +40,12 @@ class mcCommands extends DrushCommands {
         $this->output()->writeln("Processing No 1...");
         $this->processNo1($con);
         $this->output()->writeln("No 1 processing complete.");
+        // 編集ルールNo1が終わったらレジュームをNo2にしておく
         $this->saveResume("No2");
         
       } 
       if ($this->resumeProcess === "No2") {
-        //継続するか聞く
+        //　継続するか聞く
         if (!$this->shouldContinue()) {
           return;
         }        
@@ -52,6 +53,7 @@ class mcCommands extends DrushCommands {
         $this->output()->writeln("Processing No 2...");
         $this->processNo2($con);
         $this->output()->writeln("No 2 processing complete.");
+        // 編集ルールNo2が終わったらレジュームをNo3にしておく
         $this->saveResume("No3");
       } 
       if ($this->resumeProcess === "No3") {
@@ -63,6 +65,7 @@ class mcCommands extends DrushCommands {
         $this->output()->writeln("Processing No 3...");
         $this->processNo3($con);
         $this->output()->writeln("No 3 processing complete.");
+        // 編集ルールNo3が終わったらレジュームをNo4にしておく
         $this->saveResume("No4");
       } 
       if ($this->resumeProcess === "No4") {
@@ -74,16 +77,18 @@ class mcCommands extends DrushCommands {
         $this->output()->writeln("Processing No 4...");
         $this->processNo4($con);
         $this->output()->writeln("No 4 processing complete.");
+        // すべての処理が終わったらレジュームをクリアしておく
         $this->clearResume();
       }
      
     } catch (\Exception $e) {
+      // エラーが発生したので、エラー書き出し
       $this->output()->writeln("An error occurred: {$e->getMessage()}");
-      // エラーが発生したので、レジューム情報を保存
-      $this->saveResume();
     }
   }
 
+  //　***************カスタム関数の記述開始**********************************
+  //  続きを実行するか確認する
   private function shouldContinue() {
     $answer = $this->io()->confirm("Continue to the next process?", False);
     return $answer;
@@ -109,6 +114,7 @@ class mcCommands extends DrushCommands {
     $this->resumeProcess = \Drupal::state()->get('mc.resumeProcess');
   }
 
+  //　編集ルール1に従ってSELECTして本文を編集。
   private function processNo1($con) {
     // プレースホルダを使ってクエリを構築
     $query = $con->select('node__body', 'n');
@@ -119,7 +125,6 @@ class mcCommands extends DrushCommands {
     
     if ($results === null) {
       // null の場合の処理
-      // 例: メッセージを出力してログに記録する
       $this->output()->writeln("The result is null.");
     } else {
       foreach ($results as $record) {
@@ -146,6 +151,8 @@ class mcCommands extends DrushCommands {
     }
   }
 
+
+  //　編集ルール2に従ってSELECTして本文を編集。
   private function processNo2($con) {
     // プレースホルダを使ってクエリを構築
     $query = $con->select('node_field_data', 'n');
@@ -156,7 +163,6 @@ class mcCommands extends DrushCommands {
 
     if ($results === null) {
       // null の場合の処理
-      // 例: メッセージを出力してログに記録する
       $this->output()->writeln("The result is null.");
     } else {
       foreach ($results as $record) {
@@ -173,17 +179,17 @@ class mcCommands extends DrushCommands {
     }
   }
 
+  //　編集ルール3に従ってSELECTして本文を編集。
   private function processNo3($con) {
     // プレースホルダを使ってクエリを構築
     $query = $con->select('node__field_recipe_instruction', 'n');
     $query->fields('n', ['revision_id', 'field_recipe_instruction_value']);
-    // 条件を追加
+    // DB抽出条件に本文中にminutesがあることを追加
     $query->condition('field_recipe_instruction_value', '%minutes%', 'LIKE');
     $results = $query->execute()->fetchAll();
 
     if ($results === null) {
       // null の場合の処理
-      // 例: メッセージを出力してログに記録する
       $this->output()->writeln("The result is null.");
     } else {
       foreach ($results as $record) {
@@ -204,6 +210,7 @@ class mcCommands extends DrushCommands {
     }
   }
 
+  //　編集ルール4に従ってSELECTしてタイトルを編集。
   private function processNo4($con) {
     // プレースホルダを使ってクエリを構築
     $query = $con->select('node_field_data', 'n');
@@ -214,7 +221,6 @@ class mcCommands extends DrushCommands {
 
     if ($results === null) {
       // null の場合の処理
-      // 例: メッセージを出力してログに記録する
       $this->output()->writeln("The result is null.");
       } else {
       foreach ($results as $record) {
@@ -231,6 +237,7 @@ class mcCommands extends DrushCommands {
     }
   }
   
+  // テーブルnode__bodyのupdate
   private function updateNodeBody($con, $entityId, $bodyValue) {
     // ログを出力: Node Body を更新する処理を開始
     $this->output()->writeln("Updating Node Body...");
@@ -242,7 +249,8 @@ class mcCommands extends DrushCommands {
     // ログを出力: Node Body を更新する処理を終了
     $this->output()->writeln("Node Body update completed.");  
   }
-
+  
+  // テーブルnode_field_data及びnode_field_revisionのupdate
   private function updateNodeTitle($con, $vid, $title) {
     // ログを出力: Node Title を更新する処理を開始
     $this->output()->writeln("Updating Node Title...");
@@ -251,7 +259,7 @@ class mcCommands extends DrushCommands {
         ->fields(['title' => $title])
         ->condition('vid', $vid)
         ->execute();
-    //node_field_revisionの方も書き換える
+    //　node_field_revisionの方も書き換える
     $con->update('node_field_revision')
         ->fields(['title' => $title])
         ->condition('vid', $vid)
@@ -259,7 +267,8 @@ class mcCommands extends DrushCommands {
     // ログを出力: Node Title を更新する処理を終了
     $this->output()->writeln("Node Title update completed."); 
   }
-
+  
+  // テーブルnode__field_recipe_instruction及びnode_revision__field_recipe_instructionのupdate
   private function updateNodeFieldRecipeInstruction($con, $revision_id, $field_recipe_instruction_value) {
     // ログを出力: Node Field Recipe Instruction を更新する処理を開始
     $this->output()->writeln("Updating Node Field Recipe Instruction...");
@@ -268,7 +277,7 @@ class mcCommands extends DrushCommands {
         ->fields(['field_recipe_instruction_value' => $field_recipe_instruction_value])
         ->condition('revision_id', $revision_id)
         ->execute();
-    //node_field_revisionの方も書き換える
+    //　node_field_revisionの方も書き換える
     $con->update('node_revision__field_recipe_instruction')
         ->fields(['field_recipe_instruction_value' => $field_recipe_instruction_value])
         ->condition('revision_id', $revision_id)
