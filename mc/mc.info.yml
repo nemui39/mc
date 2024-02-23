@@ -1,5 +1,4 @@
 name: 'Mc'
 type: module
 description: '課題用のdrushコマンドです。4つのコンテンツ編集をルールに従い行います。'
-package: '@todo Add package'
 core_version_requirement: ^10
