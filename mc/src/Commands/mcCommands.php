@@ -5,8 +5,6 @@ namespace Drupal\mc\Commands;
 use Drush\Commands\DrushCommands;
 
 class mcCommands extends DrushCommands {
-
-  private $resumeProcess;
   /**
    * 4つのコンテンツをルールに従い編集するコマンド
    * 編集ルール
@@ -26,6 +24,8 @@ class mcCommands extends DrushCommands {
    * @command mc:dbcon
    * @aliases dbcon
    */
+  private $resumeProcess;
+  
   public function mc() {
     try {
       // レジューム情報をチェック
