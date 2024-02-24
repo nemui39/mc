@@ -82,7 +82,6 @@ class mcCommands extends DrushCommands {
     }
   }
 
-  //　***************カスタム関数の記述開始**********************************
   //  続きを実行するか確認する
   private function shouldContinue() {
     $answer = $this->io()->confirm("Continue to the next process?", False);
@@ -127,30 +126,33 @@ class mcCommands extends DrushCommands {
       // null の場合の処理
       $this->output()->writeln("The result is null.");
     } else {
+      $updateBatch = [];
       foreach ($results as $record) {
-        // レコードから必要なフィールド（body_value, entity_id, bundle）を取得
-        $bodyValue = $record->body_value;
-        $entityId = $record->entity_id;
-        $bundle = $record->bundle;
-
-        //　文字列置換ルール1
-        $search = 'delicious';
-        if (strpos($bodyValue, $search) !== false) {
-          $this->output()->writeln("Found 'delicious' in node {$entityId}, replacing with 'yummy'.");
-          $this->updateNodeBody($con, $entityId, str_replace($search, 'yummy', $bodyValue));
-          $this->output()->writeln("Node {$entityId} body updated.");
-        }
-        //　文字列置換ルール2
-        $search = 'https://www.drupal.org';
-        if (strpos($bodyValue, $search) !== false) {
-          $this->output()->writeln("Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.");
-          $this->updateNodeBody($con, $entityId, str_replace($search, 'https://WWW.DRUPAL.ORG', $bodyValue));
-          $this->output()->writeln("Node {$entityId} body updated.");
-        }
+          // レコードから必要なフィールド（body_value, entity_id, bundle）を取得
+          $bodyValue = $record->body_value;
+          $entityId = $record->entity_id;
+          $bundle = $record->bundle;
+          //　文字列置換ルール1
+          if (strpos($bodyValue, 'delicious') !== false) {
+              $this->output()->writeln("Found 'delicious' in node {$entityId}, replacing with 'yummy'.");
+              $bodyValue = str_replace('delicious', 'yummy', $bodyValue);
+          }
+          //　文字列置換ルール2
+          if (strpos($bodyValue, 'https://www.drupal.org') !== false) {
+              $this->output()->writeln("Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.");
+              $bodyValue = str_replace('https://www.drupal.org', 'https://WWW.DRUPAL.ORG', $bodyValue);
+          }
+          // 更新用のデータを追加
+          $updateBatch[] = [
+              'entity_id' => $entityId,
+              'body_value' => $bodyValue,
+          ];
       }
-    }
+      // バルクアップデートを実行
+      $this->updateNodeBodyBulk($con, $updateBatch);
+      $this->output()->writeln("Bulk update complete.");
   }
-
+}
 
   //　編集ルール2に従ってSELECTして本文を編集。
   private function processNo2($con) {
@@ -160,21 +162,27 @@ class mcCommands extends DrushCommands {
     $query->condition('type', 'page');
     $query->condition('title', '%Umami%', 'LIKE');
     $results = $query->execute()->fetchAll();
+    // バルクアップデート用の配列を初期化
+    $updateBatch = [];
     if ($results === null) {
       // null の場合の処理
       $this->output()->writeln("The result is null.");
     } else {
       foreach ($results as $record) {
-        // レコードから必要なフィールド（vid, type, title）を取得
+        // レコードから必要なフィールド（vid, title）を取得
         $vid = $record->vid;
         $title = $record->title;
-
         //　文字列置換ルール3
         $updatedTitle = str_replace('Umami', 'this site', $title);
         $this->output()->writeln("Found 'Umami' in node {$vid} title, replacing with 'this site'.");
-        $this->updateNodeTitle($con, $vid, $updatedTitle);
-        $this->output()->writeln("Node {$vid} title updated.");
+        // バルクアップデート用の配列に追加
+        $updateBatch[] = [
+            'vid' => $vid,
+            'title' => $updatedTitle,
+        ];
       }
+      // バルクアップデート実行
+      $this->updateNodeTitleBulk($con, $updateBatch);
     }
   }
 
@@ -190,6 +198,8 @@ class mcCommands extends DrushCommands {
       // null の場合の処理
       $this->output()->writeln("The result is null.");
     } else {
+      // バルクアップデート用の配列を初期化
+      $updateBatch = [];
       foreach ($results as $record) {
         // レコードから必要なフィールド（revision_id, field_recipe_instruction_value）を取得
         $revision_id = $record->revision_id;
@@ -199,11 +209,13 @@ class mcCommands extends DrushCommands {
         $replacement = 'mins';
         // str_replace() を使用して文字列の置換を行う
         $updated_value = str_replace($search, $replacement, $field_recipe_instruction_value);
-        // データベースを更新する
+        // バルクアップデート用の配列に追加
+        $updateBatch[] = ['revision_id' => $revision_id, 'field_recipe_instruction_value' => $updated_value];
         $this->output()->writeln("Found 'minutes' in node revision {$revision_id} recipe instruction, replacing with 'mins'.");
-        $this->updateNodeFieldRecipeInstruction($con, $revision_id, $updated_value);
-        $this->output()->writeln("Node revision {$revision_id} recipe instruction updated.");
       }
+      // バルクアップデートを実行
+      $this->updateNodeFieldRecipeInstructionBulk($con, $updateBatch);
+      $this->output()->writeln("Bulk update completed.");
     }
   }
 
@@ -216,68 +228,108 @@ class mcCommands extends DrushCommands {
     $query->condition('title', '%delicious%', 'LIKE');
     $results = $query->execute()->fetchAll();
     if ($results === null) {
-      // null の場合の処理
-      $this->output()->writeln("The result is null.");
-      } else {
-      foreach ($results as $record) {
-        // レコードから必要なフィールド（vid, type, title）を取得
-        $vid = $record->vid;
-        $title = $record->title;
-        //　文字列置換ルール1
-        $updatedTitle = str_replace('delicious', 'yummy', $title);
-        $this->output()->writeln("Found 'delicious' in node {$vid} title, replacing with 'yummy'.");
-        $this->updateNodeTitle($con, $vid, $updatedTitle);
-        $this->output()->writeln("Node {$vid} title updated.");
-      }
+        // null の場合の処理
+        $this->output()->writeln("The result is null.");
+    } else {
+        // バルクアップデート用の配列を初期化
+        $updateBatch = [];
+        foreach ($results as $record) {
+            // レコードから必要なフィールド（vid, type, title）を取得
+            $vid = $record->vid;
+            $title = $record->title;
+            //　文字列置換ルール1
+            $updatedTitle = str_replace('delicious', 'yummy', $title);
+            $this->output()->writeln("Found 'delicious' in node {$vid} title, replacing with 'yummy'.");
+            // バルクアップデート用の配列に追加
+            $updateBatch[] = ['vid' => $vid, 'title' => $updatedTitle];
+        }
+        // バルクアップデートを実行
+        $this->updateNodeTitleBulk($con, $updateBatch);
+        $this->output()->writeln("Bulk update completed.");
     }
   }
-  
-  // テーブルnode__bodyのupdate
-  private function updateNodeBody($con, $entityId, $bodyValue) {
-    // ログを出力: Node Body を更新する処理を開始
-    $this->output()->writeln("Updating Node Body...");
+
+  // node__bodyバルクアップデート用のメソッド
+  private function updateNodeBodyBulk($con, $updateBatch) {
+    // ログを出力: Node Body をバルクアップデートする処理を開始
+    $this->output()->writeln("Bulk updating Node Body...");
+    // バルクアップデート用の配列を準備
+    $cases = [];
+    $params = [];
+    foreach ($updateBatch as $index => $data) {
+        $entityId = $data['entity_id'];
+        $bodyValue = $data['body_value'];
+        $keyEntity = ':entity_id_' . $index;
+        $keyBody = ':body_value_' . $index;
+        $cases[$keyEntity] = $keyBody;
+        $params[$keyEntity] = $entityId;
+        $params[$keyBody] = $bodyValue;
+    }
+    // バルクアップデート用のクエリを構築
+    $query = "UPDATE {node__body} SET body_value = (CASE entity_id ";
+    foreach ($cases as $entityKey => $bodyKey) {
+        $query .= "WHEN $entityKey THEN $bodyKey ";
+    }
+    $query .= "END) WHERE entity_id IN (" . implode(',', array_keys($params)) . ")";
     // データベースを更新する
-    $con->update('node__body')
-        ->fields(['body_value' => $bodyValue])
-        ->condition('entity_id', $entityId)
-        ->execute();
-    // ログを出力: Node Body を更新する処理を終了
-    $this->output()->writeln("Node Body update completed.");  
+    $con->query($query, $params);
+    // ログを出力: Node Body をバルクアップデートする処理を終了
+    $this->output()->writeln("Bulk update completed.");
   }
-  
-  // テーブルnode_field_data及びnode_field_revisionのupdate
-  private function updateNodeTitle($con, $vid, $title) {
-    // ログを出力: Node Title を更新する処理を開始
-    $this->output()->writeln("Updating Node Title...");
-    // データベースを更新する
-    $con->update('node_field_data')
-        ->fields(['title' => $title])
-        ->condition('vid', $vid)
-        ->execute();
-    //　node_field_revisionの方も書き換える
-    $con->update('node_field_revision')
-        ->fields(['title' => $title])
-        ->condition('vid', $vid)
-        ->execute(); 
-    // ログを出力: Node Title を更新する処理を終了
-    $this->output()->writeln("Node Title update completed."); 
+
+  // titleバルクアップデート用のメソッド
+  private function updateNodeTitleBulk($con, $updateBatch) {
+    // ログを出力: Node Title をバルクアップデートする処理を開始
+    $this->output()->writeln("Bulk updating Node Title...");    
+    // バルクアップデート用の配列を作成
+    $caseStatement = [];
+    $params = [];
+    // vidを配列に追加
+    $vids = [];
+    foreach ($updateBatch as $index => $data) {
+        $vid = $data['vid'];
+        $title = $data['title'];
+        $vids[] = $vid;
+        $caseStatement[] = "WHEN :vid_$index THEN :title_$index";
+        $params[":vid_$index"] = $vid;
+        $params[":title_$index"] = $title;
+    }
+    // バルクアップデート用のクエリを実行
+    $query = "UPDATE {node_field_data} SET title = (CASE vid " . implode(' ', $caseStatement) . " END) WHERE vid IN (" . implode(',', $vids) . ")";
+    $con->query($query, $params);
+    // node_field_revisionの方も更新
+    $query = "UPDATE {node_field_revision} SET title = (CASE vid " . implode(' ', $caseStatement) . " END) WHERE vid IN (" . implode(',', $vids) . ")";
+    $con->query($query, $params);
+    // ログを出力: Node Title をバルクアップデートする処理を終了
+    $this->output()->writeln("Bulk update completed.");
   }
-  
-  // テーブルnode__field_recipe_instruction及びnode_revision__field_recipe_instructionのupdate
-  private function updateNodeFieldRecipeInstruction($con, $revision_id, $field_recipe_instruction_value) {
-    // ログを出力: Node Field Recipe Instruction を更新する処理を開始
-    $this->output()->writeln("Updating Node Field Recipe Instruction...");
-    // データベースを更新する
-    $con->update('node__field_recipe_instruction')
-        ->fields(['field_recipe_instruction_value' => $field_recipe_instruction_value])
-        ->condition('revision_id', $revision_id)
-        ->execute();
-    //　node_field_revisionの方も書き換える
-    $con->update('node_revision__field_recipe_instruction')
-        ->fields(['field_recipe_instruction_value' => $field_recipe_instruction_value])
-        ->condition('revision_id', $revision_id)
-        ->execute(); 
-    // ログを出力: Node Field Recipe Instruction を更新する処理を終了
-    $this->output()->writeln("Node Field Recipe Instruction update completed.");
+
+  // recipe instruction バルクアップデート用のメソッド
+  private function updateNodeFieldRecipeInstructionBulk($con, $updateBatch) {
+    // ログを出力: Node Field Recipe Instruction をバルクアップデートする処理を開始
+    $this->output()->writeln("Bulk updating Node Field Recipe Instruction...");    
+    // バルクアップデート用の配列を作成
+    $caseStatement = [];
+    $params = [];
+    $revisionIds = []; // revision_idの配列を初期化
+    foreach ($updateBatch as $index => $data) {
+      $revision_id = $data['revision_id'];
+      $field_recipe_instruction_value = $data['field_recipe_instruction_value'];
+      // revision_idがすでに配列に含まれていないことを確認する
+      if (!in_array($revision_id, $revisionIds)) {
+        $caseStatement[] = "WHEN :revision_id_$index THEN :field_recipe_instruction_value_$index";
+        $params[":revision_id_$index"] = $revision_id;
+        $params[":field_recipe_instruction_value_$index"] = $field_recipe_instruction_value;
+        // revision_idを配列に追加
+        $revisionIds[] = $revision_id;
+      }
+    }
+    // バルクアップデート用のクエリを実行（node__field_recipe_instruction）
+    $con->query("UPDATE {node__field_recipe_instruction} SET field_recipe_instruction_value = (CASE revision_id " . implode(' ', $caseStatement) . " END) WHERE revision_id IN (" . implode(',', $revisionIds) . ")", $params);
+    // バルクアップデート用のクエリを実行（node_revision__field_recipe_instruction）
+    $con->query("UPDATE {node_revision__field_recipe_instruction} SET field_recipe_instruction_value = (CASE revision_id " . implode(' ', $caseStatement) . " END) WHERE revision_id IN (" . implode(',', $revisionIds) . ")", $params);
+    // ログを出力: Node Field Recipe Instruction をバルクアップデートする処理を終了
+    $this->output()->writeln("Bulk update completed.");
   }
+
 }
