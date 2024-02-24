@@ -32,8 +32,6 @@ class mcCommands extends DrushCommands {
       $this->checkResume();
       // データベース接続
       $con = \Drupal::database();
-
-
       // 続きから処理を開始
       if ($this->resumeProcess === null) {
         // レジューム情報がない場合、編集ルールNo1から処理を開始
@@ -42,7 +40,6 @@ class mcCommands extends DrushCommands {
         $this->output()->writeln("No 1 processing complete.");
         // 編集ルールNo1が終わったらレジュームをNo2にしておく
         $this->saveResume("No2");
-        
       } 
       if ($this->resumeProcess === "No2") {
         //　継続するか聞く
@@ -80,7 +77,6 @@ class mcCommands extends DrushCommands {
         // すべての処理が終わったらレジュームをクリアしておく
         $this->clearResume();
       }
-     
     } catch (\Exception $e) {
       // エラーが発生したので、エラー書き出し
       $this->output()->writeln("An error occurred: {$e->getMessage()}");
@@ -122,7 +118,6 @@ class mcCommands extends DrushCommands {
     // 条件を追加
     $query->condition('bundle', ['page', 'article'], 'IN');
     $results = $query->execute()->fetchAll();
-    
     if ($results === null) {
       // null の場合の処理
       $this->output()->writeln("The result is null.");
@@ -160,7 +155,6 @@ class mcCommands extends DrushCommands {
     $query->condition('type', 'page');
     $query->condition('title', '%Umami%', 'LIKE');
     $results = $query->execute()->fetchAll();
-
     if ($results === null) {
       // null の場合の処理
       $this->output()->writeln("The result is null.");
@@ -187,7 +181,6 @@ class mcCommands extends DrushCommands {
     // DB抽出条件に本文中にminutesがあることを追加
     $query->condition('field_recipe_instruction_value', '%minutes%', 'LIKE');
     $results = $query->execute()->fetchAll();
-
     if ($results === null) {
       // null の場合の処理
       $this->output()->writeln("The result is null.");
@@ -201,7 +194,6 @@ class mcCommands extends DrushCommands {
         $replacement = 'mins';
         // str_replace() を使用して文字列の置換を行う
         $updated_value = str_replace($search, $replacement, $field_recipe_instruction_value);
-
         // データベースを更新する
         $this->output()->writeln("Found 'minutes' in node revision {$revision_id} recipe instruction, replacing with 'mins'.");
         $this->updateNodeFieldRecipeInstruction($con, $revision_id, $updated_value);
@@ -218,7 +210,6 @@ class mcCommands extends DrushCommands {
     $query->condition('type', 'recipe', '<>');
     $query->condition('title', '%delicious%', 'LIKE');
     $results = $query->execute()->fetchAll();
-
     if ($results === null) {
       // null の場合の処理
       $this->output()->writeln("The result is null.");
@@ -227,7 +218,6 @@ class mcCommands extends DrushCommands {
         // レコードから必要なフィールド（vid, type, title）を取得
         $vid = $record->vid;
         $title = $record->title;
-
         //　文字列置換ルール1
         $updatedTitle = str_replace('delicious', 'yummy', $title);
         $this->output()->writeln("Found 'delicious' in node {$vid} title, replacing with 'yummy'.");
