@@ -5,6 +5,7 @@ namespace Drupal\mc\Commands;
 use Drush\Commands\DrushCommands;
 
 class mcCommands extends DrushCommands {
+  private $resumeProcess;  
   /**
    * 4つのコンテンツをルールに従い編集するコマンド
    * 編集ルール
@@ -23,9 +24,7 @@ class mcCommands extends DrushCommands {
    * 
    * @command mc:dbcon
    * @aliases dbcon
-   */
-  private $resumeProcess;
-  
+   */  
   public function mc() {
     try {
       // レジューム情報をチェック
@@ -110,13 +109,19 @@ class mcCommands extends DrushCommands {
     $this->resumeProcess = \Drupal::state()->get('mc.resumeProcess');
   }
 
-  //　編集ルール1に従ってSELECTして本文を編集。
+  //　編集ルール1に従ってSELECTして本文を編集。（条件を追加して高速化）
   private function processNo1($con) {
     // プレースホルダを使ってクエリを構築
     $query = $con->select('node__body', 'n');
     $query->fields('n', ['body_value', 'entity_id', 'bundle']);
-    // 条件を追加
+    // 条件を追加 基本ページと記事のなかで
     $query->condition('bundle', ['page', 'article'], 'IN');
+    //　deliciousもしくはhttps://www.drupal.orgが本文にあるものだけ取り出す
+    $query->condition(
+      $query->orConditionGroup()
+            ->condition('body_value', '%https://www.drupal.org%', 'LIKE')
+            ->condition('body_value', '%delicious%', 'LIKE')
+    );
     $results = $query->execute()->fetchAll();
     if ($results === null) {
       // null の場合の処理
