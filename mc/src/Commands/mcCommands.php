@@ -122,9 +122,9 @@ class mcCommands extends DrushCommands {
             ->condition('body_value', '%delicious%', 'LIKE')
     );
     $results = $query->execute()->fetchAll();
-    if ($results === null) {
-      // null の場合の処理
-      $this->output()->writeln("The result is null.");
+    if ($results === []) {
+      // empty の場合の処理
+      $this->output()->writeln("The result is empty.");
     } else {
       $updateBatch = [];
       foreach ($results as $record) {
@@ -164,9 +164,9 @@ class mcCommands extends DrushCommands {
     $results = $query->execute()->fetchAll();
     // バルクアップデート用の配列を初期化
     $updateBatch = [];
-    if ($results === null) {
-      // null の場合の処理
-      $this->output()->writeln("The result is null.");
+    if ($results === []) {
+      // empty の場合の処理
+      $this->output()->writeln("The result is empty.");
     } else {
       foreach ($results as $record) {
         // レコードから必要なフィールド（vid, title）を取得
@@ -194,9 +194,9 @@ class mcCommands extends DrushCommands {
     // DB抽出条件に本文中にminutesがあることを追加
     $query->condition('field_recipe_instruction_value', '%minutes%', 'LIKE');
     $results = $query->execute()->fetchAll();
-    if ($results === null) {
-      // null の場合の処理
-      $this->output()->writeln("The result is null.");
+    if ($results === []) {
+      // empty の場合の処理
+      $this->output()->writeln("The result is empty.");
     } else {
       // バルクアップデート用の配列を初期化
       $updateBatch = [];
@@ -227,9 +227,9 @@ class mcCommands extends DrushCommands {
     $query->condition('type', 'recipe', '<>');
     $query->condition('title', '%delicious%', 'LIKE');
     $results = $query->execute()->fetchAll();
-    if ($results === null) {
-        // null の場合の処理
-        $this->output()->writeln("The result is null.");
+    if ($results === []) {
+      // empty の場合の処理
+      $this->output()->writeln("The result is empty.");
     } else {
         // バルクアップデート用の配列を初期化
         $updateBatch = [];
