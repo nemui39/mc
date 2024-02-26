@@ -3,9 +3,18 @@
 namespace Drupal\mc\Commands;
 
 use Drush\Commands\DrushCommands;
+use Drupal\Core\Database\Connection;
+use Drupal\Core\State\StateInterface;
 
 class mcCommands extends DrushCommands {
+  private $database;
+  private $state;
   private $resumeProcess;  
+
+  public function __construct(Connection $database, StateInterface $state) {
+    $this->database = $database;
+    $this->state = $state;
+  }
   /**
    * 4つのコンテンツをルールに従い編集するコマンド
    * 編集ルール
@@ -30,7 +39,7 @@ class mcCommands extends DrushCommands {
       // レジューム情報をチェック
       $this->checkResume();
       // データベース接続
-      $con = \Drupal::database();
+      $con = $this->database;
       // 続きから処理を開始
       if ($this->resumeProcess === null) {
         // レジューム情報がない場合、編集ルールNo1から処理を開始
@@ -91,21 +100,20 @@ class mcCommands extends DrushCommands {
   // レジューム情報を保存
   private function saveResume($process = null) {
     if ($process) {
-      $this->resumeProcess = $process;
-      \Drupal::state()->set('mc.resumeProcess', $this->resumeProcess);
+      $this->state->set('mc.resumeProcess', $process);
     } else {
-      \Drupal::state()->delete('mc.resumeProcess');
+      $this->state->delete('mc.resumeProcess');
     }
   }
 
   // レジューム情報をクリア
   private function clearResume() {
-    \Drupal::state()->delete('mc.resumeProcess');
+    $this->state->delete('mc.resumeProcess');
   }
 
   // レジューム情報をチェック
   private function checkResume() {
-    $this->resumeProcess = \Drupal::state()->get('mc.resumeProcess');
+    $this->resumeProcess = $this->state->get('mc.resumeProcess');
   }
 
   //　編集ルール1に従ってSELECTして本文を編集。（条件を追加して高速化）
