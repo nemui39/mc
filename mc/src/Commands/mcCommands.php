@@ -259,19 +259,29 @@ class mcCommands extends DrushCommands {
     foreach ($updateBatch as $index => $data) {
         $entityId = $data['entity_id'];
         $bodyValue = $data['body_value'];
+        // :entity_id_0 :entity_id_1 ユニークキーを生成
         $keyEntity = ':entity_id_' . $index;
+        // :body_value_0 :body_value_1 ユニークキーを生成
         $keyBody = ':body_value_' . $index;
+        // $cases配列と$params配列に追加.
+        // $cases配列にはエンティティIDのプレースホルダをキーとし、それに対応する本文のプレースホルダを値として格納
         $cases[$keyEntity] = $keyBody;
+        // $params配列にはプレースホルダと実際の値のペアが格納
         $params[$keyEntity] = $entityId;
         $params[$keyBody] = $bodyValue;
     }
     // バルクアップデート用のクエリを構築
+    // テーブルにnode__bodyを指定してentity_idごとに値をセット
     $query = "UPDATE {node__body} SET body_value = (CASE entity_id ";
+    // queryを構築:entity_id_0には:body_value_0を:entity_id_1には:body_value_1
     foreach ($cases as $entityKey => $bodyKey) {
         $query .= "WHEN $entityKey THEN $bodyKey ";
     }
+    // プレースホルダの部分を作るarray_keys($params)は$paramsのキーをすべて取得、
+    // implode(',',はコンマ区切りで連結した文字列を返す。
     $query .= "END) WHERE entity_id IN (" . implode(',', array_keys($params)) . ")";
     // データベースを更新する
+    // クエリが実行されるときにプレースホルダに対応した値がバインドされる。
     $con->query($query, $params);
     // ログを出力: Node Body をバルクアップデートする処理を終了
     $this->output()->writeln("Bulk update completed.");
