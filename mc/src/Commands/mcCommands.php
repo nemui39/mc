@@ -132,8 +132,7 @@ class mcCommands extends DrushCommands {
     //　deliciousもしくはhttps://www.drupal.orgが本文にあるものだけ取り出す
     $query->condition(
       $query->orConditionGroup()
-            // LIKEだと変換後も引っかかるので＝にして完全一致のみに
-            ->condition('body_value', '%https://www.drupal.org%', '=')
+            ->condition('body_value', '%https://www.drupal.org%', 'LIKE')
             ->condition('body_value', '%delicious%', 'LIKE')
     );
     $results = $query->execute()->fetchAll();
@@ -143,29 +142,38 @@ class mcCommands extends DrushCommands {
     } else {
       $updateBatch = [];
       foreach ($results as $record) {
-          // レコードから必要なフィールド（body_value, entity_id, bundle）を取得
-          $bodyValue = $record->body_value;
-          $entityId = $record->entity_id;
-          $bundle = $record->bundle;
-          //　文字列置換ルール1
-          if (strpos($bodyValue, 'delicious') !== false) {
-              $this->output()->writeln("Found 'delicious' in node {$entityId}, replacing with 'yummy'.");
-              $bodyValue = str_replace('delicious', 'yummy', $bodyValue);
-          }
-          //　文字列置換ルール2
-          if (strpos($bodyValue, 'https://www.drupal.org') !== false) {
-              $this->output()->writeln("Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.");
-              $bodyValue = str_replace('https://www.drupal.org', 'https://WWW.DRUPAL.ORG', $bodyValue);
-          }
-          // 更新用のデータを追加
-          $updateBatch[] = [
-              'entity_id' => $entityId,
-              'body_value' => $bodyValue,
-          ];
+        // レコードから必要なフィールド（body_value, entity_id, bundle）を取得
+        $bodyValue = $record->body_value;
+        $entityId = $record->entity_id;
+        $bundle = $record->bundle;
+        //　文字列置換ルール2が終わっている場合の処理
+        if (strpos($bodyValue, 'https://WWW.DRUPAL.ORG') !== false) {
+          continue;
+        }
+        //　文字列置換ルール1
+        if (strpos($bodyValue, 'delicious') !== false) {
+            $this->output()->writeln("Found 'delicious' in node {$entityId}, replacing with 'yummy'.");
+            $bodyValue = str_replace('delicious', 'yummy', $bodyValue);
+        }
+        //　文字列置換ルール2
+        if (strpos($bodyValue, 'https://www.drupal.org') !== false) {
+            $this->output()->writeln("Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.");
+            $bodyValue = str_replace('https://www.drupal.org', 'https://WWW.DRUPAL.ORG', $bodyValue);
+        }
+        // 更新用のデータを追加
+        $updateBatch[] = [
+            'entity_id' => $entityId,
+            'body_value' => $bodyValue,
+        ];
       }
-      // バルクアップデートを実行
-      $this->updateNodeBodyBulk($con, $updateBatch);
-      $this->output()->writeln("Bulk update complete.");
+      if ($updateBatch === []) {
+        // empty の場合の処理
+        $this->output()->writeln("The result is empty.");
+      } else {
+        // バルクアップデートを実行
+        $this->updateNodeBodyBulk($con, $updateBatch);
+        $this->output()->writeln("Bulk update complete.");
+      }
   }
 }
 
