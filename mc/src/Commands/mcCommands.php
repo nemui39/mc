@@ -7,13 +7,13 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\State\StateInterface;
 
 class mcCommands extends DrushCommands {
-  private $database;
+  protected $database;
   private $state;
   private $resumeProcess;  
 
   public function __construct(Connection $database, StateInterface $state) {
     $this->database = $database;
-    $this->state = $state;
+    $this->state = $state;    
   }
   /**
    * 4つのコンテンツをルールに従い編集するコマンド
@@ -49,6 +49,8 @@ class mcCommands extends DrushCommands {
         // 編集ルールNo1が終わったらレジュームをNo2にしておく
         $this->saveResume("No2");
       } 
+      // レジューム情報をチェック
+      $this->checkResume();
       if ($this->resumeProcess === "No2") {
         //　継続するか聞く
         if (!$this->shouldContinue()) {
@@ -61,6 +63,8 @@ class mcCommands extends DrushCommands {
         // 編集ルールNo2が終わったらレジュームをNo3にしておく
         $this->saveResume("No3");
       } 
+      // レジューム情報をチェック
+      $this->checkResume();
       if ($this->resumeProcess === "No3") {
         //　継続するか聞く
         if (!$this->shouldContinue()) {
@@ -73,6 +77,8 @@ class mcCommands extends DrushCommands {
         // 編集ルールNo3が終わったらレジュームをNo4にしておく
         $this->saveResume("No4");
       } 
+      // レジューム情報をチェック
+      $this->checkResume();
       if ($this->resumeProcess === "No4") {
         //　継続するか聞く
         if (!$this->shouldContinue()) {
@@ -126,7 +132,8 @@ class mcCommands extends DrushCommands {
     //　deliciousもしくはhttps://www.drupal.orgが本文にあるものだけ取り出す
     $query->condition(
       $query->orConditionGroup()
-            ->condition('body_value', '%https://www.drupal.org%', 'LIKE')
+            // LIKEだと変換後も引っかかるので＝にして完全一致のみに
+            ->condition('body_value', '%https://www.drupal.org%', '=')
             ->condition('body_value', '%delicious%', 'LIKE')
     );
     $results = $query->execute()->fetchAll();

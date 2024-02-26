@@ -1,5 +1,6 @@
 services:
   exa.commands:
     class: \Drupal\mc\Commands\mcCommands
+    arguments: ['@database','@state']
     tags: 
       - { name: drush.command }
