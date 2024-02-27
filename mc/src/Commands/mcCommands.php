@@ -287,7 +287,7 @@ class mcCommands extends DrushCommands {
   }
 
   // 文字列置換ルール１
-  function replaceRule1($bodyValue, $entityId) {
+  private function replaceRule1($bodyValue, $entityId) {
     if (strpos($bodyValue, 'delicious') !== false) {
       echo "Found 'delicious' in node {$entityId}, replacing with 'yummy'.\n";
       $bodyValue = str_replace('delicious', 'yummy', $bodyValue);
@@ -296,7 +296,7 @@ class mcCommands extends DrushCommands {
   }
 
   // 文字列置換ルール２
-  function replaceRule2($bodyValue, $entityId) {
+  private function replaceRule2($bodyValue, $entityId) {
     if (strpos($bodyValue, 'https://www.drupal.org') !== false) {
       echo "Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.\n";
       $bodyValue = str_replace('https://www.drupal.org', 'https://WWW.DRUPAL.ORG', $bodyValue);
@@ -305,7 +305,7 @@ class mcCommands extends DrushCommands {
   }
 
   // 文字列置換ルール３
-  function replaceRule3($bodyValue, $entityId) {
+  private function replaceRule3($bodyValue, $entityId) {
     if (strpos($bodyValue, 'Umami') !== false) {
       echo "Found 'Umami' in node {$entityId}, replacing with 'this site'.\n";
       $bodyValue = str_replace('Umami', 'this site', $bodyValue);
@@ -314,7 +314,7 @@ class mcCommands extends DrushCommands {
   }
 
   // 文字列置換ルール４
-  function replaceRule4($bodyValue, $entityId) {
+  private function replaceRule4($bodyValue, $entityId) {
     if (strpos($bodyValue, 'minutes') !== false) {
       echo "Found 'minutes' in node {$entityId}, replacing with 'mins'.\n";
       $bodyValue = str_replace('minutes', 'mins', $bodyValue);
