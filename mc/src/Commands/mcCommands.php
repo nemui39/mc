@@ -35,6 +35,7 @@ class mcCommands extends DrushCommands {
    * @aliases dbcon
    */  
   public function mc() {
+    
     try {
       // レジューム情報をチェック
       $this->checkResume();
@@ -138,24 +139,18 @@ class mcCommands extends DrushCommands {
     } else {
       $updateBatch = [];
       foreach ($results as $record) {
-        // レコードから必要なフィールド（body_value, entity_id, bundle）を取得
+        // レコードから必要なフィールド（body_value, entity_id）を取得
         $bodyValue = $record->body_value;
         $entityId = $record->entity_id;
-        $bundle = $record->bundle;
+        
         //　文字列置換ルール2が終わっている場合の処理
         if (strpos($bodyValue, 'https://WWW.DRUPAL.ORG') !== false) {
           continue;
         }
-        //　文字列置換ルール1
-        if (strpos($bodyValue, 'delicious') !== false) {
-            $this->output()->writeln("Found 'delicious' in node {$entityId}, replacing with 'yummy'.");
-            $bodyValue = str_replace('delicious', 'yummy', $bodyValue);
-        }
-        //　文字列置換ルール2
-        if (strpos($bodyValue, 'https://www.drupal.org') !== false) {
-            $this->output()->writeln("Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.");
-            $bodyValue = str_replace('https://www.drupal.org', 'https://WWW.DRUPAL.ORG', $bodyValue);
-        }
+        // 文字列置換ルール1を適用
+        $bodyValue = $this->replaceRule1($bodyValue, $entityId);
+        // 文字列置換ルール2を適用
+        $bodyValue = $this->replaceRule2($bodyValue, $entityId);
         // 更新用のデータを追加
         $updateBatch[] = [
             'entity_id' => $entityId,
@@ -168,7 +163,6 @@ class mcCommands extends DrushCommands {
       } else {
         // バルクアップデートを実行
         $this->bulkUpdate($con, 'node__body', 'entity_id' , 'body_value', $updateBatch);
-        $this->output()->writeln("Bulk update complete.");
       }
     }
   }
@@ -191,9 +185,8 @@ class mcCommands extends DrushCommands {
             // レコードから必要なフィールド（vid, title）を取得
             $vid = $record->vid;
             $title = $record->title;
-            //　文字列置換ルール3
-            $updatedTitle = str_replace('Umami', 'this site', $title);
-            $this->output()->writeln("Found 'Umami' in node {$vid} title, replacing with 'this site'.");
+            // 文字列置換ルール3を適用
+            $updatedTitle = $this->replaceRule3($title, $vid);
             // バルクアップデート用の配列に追加
             $updateBatch[] = [
                 'vid' => $vid,
@@ -202,6 +195,7 @@ class mcCommands extends DrushCommands {
         }
         // バルクアップデート実行
         $this->bulkUpdate($con, 'node_field_data', 'vid' , 'title', $updateBatch);
+        $this->bulkUpdate($con, 'node_field_revision' , 'vid' , 'title', $updateBatch);
     }
   }
 
@@ -224,10 +218,7 @@ class mcCommands extends DrushCommands {
             $revision_id = $record->revision_id;
             $field_recipe_instruction_value = $record->field_recipe_instruction_value;
             //　文字列置換ルール4
-            $search = 'minutes';
-            $replacement = 'mins';
-            // str_replace() を使用して文字列の置換を行う
-            $updated_value = str_replace($search, $replacement, $field_recipe_instruction_value);
+            $updated_value = $this->replaceRule4($field_recipe_instruction_value, $revision_id);
             // バルクアップデート用の配列に追加
             $updateBatch[] = ['revision_id' => $revision_id, 'field_recipe_instruction_value' => $updated_value];
             $this->output()->writeln("Found 'minutes' in node revision {$revision_id} recipe instruction, replacing with 'mins'.");
@@ -235,7 +226,6 @@ class mcCommands extends DrushCommands {
         // バルクアップデートを実行
         $this->bulkUpdate($con, 'node__field_recipe_instruction', 'revision_id' , 'field_recipe_instruction_value', $updateBatch);
         $this->bulkUpdate($con, 'node_revision__field_recipe_instruction', 'revision_id' , 'field_recipe_instruction_value', $updateBatch);
-        $this->output()->writeln("Bulk update completed.");
     }
   }
 
@@ -258,14 +248,13 @@ class mcCommands extends DrushCommands {
             $vid = $record->vid;
             $title = $record->title;
             //　文字列置換ルール1
-            $updatedTitle = str_replace('delicious', 'yummy', $title);
-            $this->output()->writeln("Found 'delicious' in node {$vid} title, replacing with 'yummy'.");
+            $updatedTitle = $this->replaceRule1($title, $vid);
             // バルクアップデート用の配列に追加
             $updateBatch[] = ['vid' => $vid, 'title' => $updatedTitle];
         }
         // バルクアップデートを実行
         $this->bulkUpdate($con, 'node_field_data' , 'vid' , 'title', $updateBatch);
-        $this->output()->writeln("Bulk update completed.");
+        $this->bulkUpdate($con, 'node_field_revision' , 'vid' , 'title', $updateBatch);
     }
   }
 
@@ -296,6 +285,42 @@ class mcCommands extends DrushCommands {
     $con->query($query, $params);
     // ログを出力: バルクアップデート処理を終了
     $this->output()->writeln("Bulk update completed.");
+  }
+
+  // 文字列置換ルール１
+  function replaceRule1($bodyValue, $entityId) {
+    if (strpos($bodyValue, 'delicious') !== false) {
+        echo "Found 'delicious' in node {$entityId}, replacing with 'yummy'.\n";
+        $bodyValue = str_replace('delicious', 'yummy', $bodyValue);
+    }
+    return $bodyValue;
+  }
+
+  // 文字列置換ルール２
+  function replaceRule2($bodyValue, $entityId) {
+    if (strpos($bodyValue, 'https://www.drupal.org') !== false) {
+        echo "Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.\n";
+        $bodyValue = str_replace('https://www.drupal.org', 'https://WWW.DRUPAL.ORG', $bodyValue);
+    }
+    return $bodyValue;
+  }
+
+  // 文字列置換ルール３
+  function replaceRule3($bodyValue, $entityId) {
+    if (strpos($bodyValue, 'Umami') !== false) {
+        echo "Found 'Umami' in node {$entityId}, replacing with 'this site'.\n";
+        $bodyValue = str_replace('Umami', 'this site', $bodyValue);
+    }
+    return $bodyValue;
+  }
+
+  // 文字列置換ルール４
+  function replaceRule4($bodyValue, $entityId) {
+    if (strpos($bodyValue, 'minutes') !== false) {
+        echo "Found 'minutes' in node {$entityId}, replacing with 'mins'.\n";
+        $bodyValue = str_replace('minutes', 'mins', $bodyValue);
+    }
+    return $bodyValue;
   }
 
 }
