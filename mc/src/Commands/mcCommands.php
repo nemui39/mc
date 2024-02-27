@@ -34,8 +34,7 @@ class mcCommands extends DrushCommands {
    * @command mc:dbcon
    * @aliases dbcon
    */  
-  public function mc() {
-    
+  public function mc() {    
     try {
       // レジューム情報をチェック
       $this->checkResume();
@@ -178,24 +177,24 @@ class mcCommands extends DrushCommands {
     // バルクアップデート用の配列を初期化
     $updateBatch = [];
     if ($results === []) {
-        // empty の場合の処理
-        $this->output()->writeln("The result is empty.");
+      // empty の場合の処理
+      $this->output()->writeln("The result is empty.");
     } else {
-        foreach ($results as $record) {
-            // レコードから必要なフィールド（vid, title）を取得
-            $vid = $record->vid;
-            $title = $record->title;
-            // 文字列置換ルール3を適用
-            $updatedTitle = $this->replaceRule3($title, $vid);
-            // バルクアップデート用の配列に追加
-            $updateBatch[] = [
-                'vid' => $vid,
-                'title' => $updatedTitle,
-            ];
-        }
-        // バルクアップデート実行
-        $this->bulkUpdate($con, 'node_field_data', 'vid' , 'title', $updateBatch);
-        $this->bulkUpdate($con, 'node_field_revision' , 'vid' , 'title', $updateBatch);
+      foreach ($results as $record) {
+        // レコードから必要なフィールド（vid, title）を取得
+        $vid = $record->vid;
+        $title = $record->title;
+        // 文字列置換ルール3を適用
+        $updatedTitle = $this->replaceRule3($title, $vid);
+        // バルクアップデート用の配列に追加
+        $updateBatch[] = [
+            'vid' => $vid,
+            'title' => $updatedTitle,
+        ];
+      }
+      // バルクアップデート実行
+      $this->bulkUpdate($con, 'node_field_data', 'vid' , 'title', $updateBatch);
+      $this->bulkUpdate($con, 'node_field_revision' , 'vid' , 'title', $updateBatch);
     }
   }
 
@@ -211,21 +210,21 @@ class mcCommands extends DrushCommands {
         // empty の場合の処理
         $this->output()->writeln("The result is empty.");
     } else {
-        // バルクアップデート用の配列を初期化
-        $updateBatch = [];
-        foreach ($results as $record) {
-            // レコードから必要なフィールド（revision_id, field_recipe_instruction_value）を取得
-            $revision_id = $record->revision_id;
-            $field_recipe_instruction_value = $record->field_recipe_instruction_value;
-            //　文字列置換ルール4
-            $updated_value = $this->replaceRule4($field_recipe_instruction_value, $revision_id);
-            // バルクアップデート用の配列に追加
-            $updateBatch[] = ['revision_id' => $revision_id, 'field_recipe_instruction_value' => $updated_value];
-            $this->output()->writeln("Found 'minutes' in node revision {$revision_id} recipe instruction, replacing with 'mins'.");
-        }
-        // バルクアップデートを実行
-        $this->bulkUpdate($con, 'node__field_recipe_instruction', 'revision_id' , 'field_recipe_instruction_value', $updateBatch);
-        $this->bulkUpdate($con, 'node_revision__field_recipe_instruction', 'revision_id' , 'field_recipe_instruction_value', $updateBatch);
+      // バルクアップデート用の配列を初期化
+      $updateBatch = [];
+      foreach ($results as $record) {
+        // レコードから必要なフィールド（revision_id, field_recipe_instruction_value）を取得
+        $revision_id = $record->revision_id;
+        $field_recipe_instruction_value = $record->field_recipe_instruction_value;
+        //　文字列置換ルール4
+        $updated_value = $this->replaceRule4($field_recipe_instruction_value, $revision_id);
+        // バルクアップデート用の配列に追加
+        $updateBatch[] = ['revision_id' => $revision_id, 'field_recipe_instruction_value' => $updated_value];
+        $this->output()->writeln("Found 'minutes' in node revision {$revision_id} recipe instruction, replacing with 'mins'.");
+      }
+      // バルクアップデートを実行
+      $this->bulkUpdate($con, 'node__field_recipe_instruction', 'revision_id' , 'field_recipe_instruction_value', $updateBatch);
+      $this->bulkUpdate($con, 'node_revision__field_recipe_instruction', 'revision_id' , 'field_recipe_instruction_value', $updateBatch);
     }
   }
 
@@ -241,20 +240,20 @@ class mcCommands extends DrushCommands {
       // empty の場合の処理
       $this->output()->writeln("The result is empty.");
     } else {
-        // バルクアップデート用の配列を初期化
-        $updateBatch = [];
-        foreach ($results as $record) {
-            // レコードから必要なフィールド（vid, type, title）を取得
-            $vid = $record->vid;
-            $title = $record->title;
-            //　文字列置換ルール1
-            $updatedTitle = $this->replaceRule1($title, $vid);
-            // バルクアップデート用の配列に追加
-            $updateBatch[] = ['vid' => $vid, 'title' => $updatedTitle];
-        }
-        // バルクアップデートを実行
-        $this->bulkUpdate($con, 'node_field_data' , 'vid' , 'title', $updateBatch);
-        $this->bulkUpdate($con, 'node_field_revision' , 'vid' , 'title', $updateBatch);
+      // バルクアップデート用の配列を初期化
+      $updateBatch = [];
+      foreach ($results as $record) {
+        // レコードから必要なフィールド（vid, type, title）を取得
+        $vid = $record->vid;
+        $title = $record->title;
+        //　文字列置換ルール1
+        $updatedTitle = $this->replaceRule1($title, $vid);
+        // バルクアップデート用の配列に追加
+        $updateBatch[] = ['vid' => $vid, 'title' => $updatedTitle];
+      }
+      // バルクアップデートを実行
+      $this->bulkUpdate($con, 'node_field_data' , 'vid' , 'title', $updateBatch);
+      $this->bulkUpdate($con, 'node_field_revision' , 'vid' , 'title', $updateBatch);
     }
   }
 
@@ -266,17 +265,17 @@ class mcCommands extends DrushCommands {
     $params = [];
     $ids = [];
     foreach ($updateBatch as $index => $data) {
-        $id = $data[$bId];
-        $value = $data[$field];
-        if (!in_array($id, $ids)) {
-            // :id_0 :value_0 ユニークキーを生成
-            // $caseStatementにペアにしてクエリを追加していく
-            $caseStatement[] = "WHEN :id_$index THEN :value_$index";
-            // ここでバインド紐づけ
-            $params[":id_$index"] = $id;
-            $params[":value_$index"] = $value;
-            $ids[] = $id;
-        }
+      $id = $data[$bId];
+      $value = $data[$field];
+      if (!in_array($id, $ids)) {
+        // :id_0 :value_0 ユニークキーを生成
+        // $caseStatementにペアにしてクエリを追加していく
+        $caseStatement[] = "WHEN :id_$index THEN :value_$index";
+        // ここでバインド紐づけ
+        $params[":id_$index"] = $id;
+        $params[":value_$index"] = $value;
+        $ids[] = $id;
+      }
     }
     // バルクアップデート用のクエリを実行
     // プレースホルダの部分を作るarray_keys($params)は$paramsのキーをすべて取得、
@@ -290,8 +289,8 @@ class mcCommands extends DrushCommands {
   // 文字列置換ルール１
   function replaceRule1($bodyValue, $entityId) {
     if (strpos($bodyValue, 'delicious') !== false) {
-        echo "Found 'delicious' in node {$entityId}, replacing with 'yummy'.\n";
-        $bodyValue = str_replace('delicious', 'yummy', $bodyValue);
+      echo "Found 'delicious' in node {$entityId}, replacing with 'yummy'.\n";
+      $bodyValue = str_replace('delicious', 'yummy', $bodyValue);
     }
     return $bodyValue;
   }
@@ -299,8 +298,8 @@ class mcCommands extends DrushCommands {
   // 文字列置換ルール２
   function replaceRule2($bodyValue, $entityId) {
     if (strpos($bodyValue, 'https://www.drupal.org') !== false) {
-        echo "Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.\n";
-        $bodyValue = str_replace('https://www.drupal.org', 'https://WWW.DRUPAL.ORG', $bodyValue);
+      echo "Found 'https://www.drupal.org' in node {$entityId}, replacing with 'https://WWW.DRUPAL.ORG'.\n";
+      $bodyValue = str_replace('https://www.drupal.org', 'https://WWW.DRUPAL.ORG', $bodyValue);
     }
     return $bodyValue;
   }
@@ -308,8 +307,8 @@ class mcCommands extends DrushCommands {
   // 文字列置換ルール３
   function replaceRule3($bodyValue, $entityId) {
     if (strpos($bodyValue, 'Umami') !== false) {
-        echo "Found 'Umami' in node {$entityId}, replacing with 'this site'.\n";
-        $bodyValue = str_replace('Umami', 'this site', $bodyValue);
+      echo "Found 'Umami' in node {$entityId}, replacing with 'this site'.\n";
+      $bodyValue = str_replace('Umami', 'this site', $bodyValue);
     }
     return $bodyValue;
   }
@@ -317,8 +316,8 @@ class mcCommands extends DrushCommands {
   // 文字列置換ルール４
   function replaceRule4($bodyValue, $entityId) {
     if (strpos($bodyValue, 'minutes') !== false) {
-        echo "Found 'minutes' in node {$entityId}, replacing with 'mins'.\n";
-        $bodyValue = str_replace('minutes', 'mins', $bodyValue);
+      echo "Found 'minutes' in node {$entityId}, replacing with 'mins'.\n";
+      $bodyValue = str_replace('minutes', 'mins', $bodyValue);
     }
     return $bodyValue;
   }
