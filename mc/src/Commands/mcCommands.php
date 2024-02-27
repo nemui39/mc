@@ -104,12 +104,8 @@ class mcCommands extends DrushCommands {
   }
 
   // レジューム情報を保存
-  private function saveResume($process = null) {
-    if ($process) {
-      $this->state->set('mc.resumeProcess', $process);
-    } else {
-      $this->state->delete('mc.resumeProcess');
-    }
+  private function saveResume($process) {
+    $this->state->set('mc.resumeProcess', $process);
   }
 
   // レジューム情報をクリア
@@ -171,41 +167,41 @@ class mcCommands extends DrushCommands {
         $this->output()->writeln("The result is empty.");
       } else {
         // バルクアップデートを実行
-        $this->updateNodeBodyBulk($con, $updateBatch);
+        $this->bulkUpdate($con, 'node__body', 'entity_id' , 'body_value', $updateBatch);
         $this->output()->writeln("Bulk update complete.");
       }
+    }
   }
-}
 
   //　編集ルール2に従ってSELECTして本文を編集。
   private function processNo2($con) {
     // プレースホルダを使ってクエリを構築
     $query = $con->select('node_field_data', 'n');
-    $query->fields('n', ['vid', 'type', 'title']);
+    $query->fields('n', ['vid', 'title']);
     $query->condition('type', 'page');
     $query->condition('title', '%Umami%', 'LIKE');
     $results = $query->execute()->fetchAll();
     // バルクアップデート用の配列を初期化
     $updateBatch = [];
     if ($results === []) {
-      // empty の場合の処理
-      $this->output()->writeln("The result is empty.");
+        // empty の場合の処理
+        $this->output()->writeln("The result is empty.");
     } else {
-      foreach ($results as $record) {
-        // レコードから必要なフィールド（vid, title）を取得
-        $vid = $record->vid;
-        $title = $record->title;
-        //　文字列置換ルール3
-        $updatedTitle = str_replace('Umami', 'this site', $title);
-        $this->output()->writeln("Found 'Umami' in node {$vid} title, replacing with 'this site'.");
-        // バルクアップデート用の配列に追加
-        $updateBatch[] = [
-            'vid' => $vid,
-            'title' => $updatedTitle,
-        ];
-      }
-      // バルクアップデート実行
-      $this->updateNodeTitleBulk($con, $updateBatch);
+        foreach ($results as $record) {
+            // レコードから必要なフィールド（vid, title）を取得
+            $vid = $record->vid;
+            $title = $record->title;
+            //　文字列置換ルール3
+            $updatedTitle = str_replace('Umami', 'this site', $title);
+            $this->output()->writeln("Found 'Umami' in node {$vid} title, replacing with 'this site'.");
+            // バルクアップデート用の配列に追加
+            $updateBatch[] = [
+                'vid' => $vid,
+                'title' => $updatedTitle,
+            ];
+        }
+        // バルクアップデート実行
+        $this->bulkUpdate($con, 'node_field_data', 'vid' , 'title', $updateBatch);
     }
   }
 
@@ -218,27 +214,28 @@ class mcCommands extends DrushCommands {
     $query->condition('field_recipe_instruction_value', '%minutes%', 'LIKE');
     $results = $query->execute()->fetchAll();
     if ($results === []) {
-      // empty の場合の処理
-      $this->output()->writeln("The result is empty.");
+        // empty の場合の処理
+        $this->output()->writeln("The result is empty.");
     } else {
-      // バルクアップデート用の配列を初期化
-      $updateBatch = [];
-      foreach ($results as $record) {
-        // レコードから必要なフィールド（revision_id, field_recipe_instruction_value）を取得
-        $revision_id = $record->revision_id;
-        $field_recipe_instruction_value = $record->field_recipe_instruction_value;
-        //　文字列置換ルール4
-        $search = 'minutes';
-        $replacement = 'mins';
-        // str_replace() を使用して文字列の置換を行う
-        $updated_value = str_replace($search, $replacement, $field_recipe_instruction_value);
-        // バルクアップデート用の配列に追加
-        $updateBatch[] = ['revision_id' => $revision_id, 'field_recipe_instruction_value' => $updated_value];
-        $this->output()->writeln("Found 'minutes' in node revision {$revision_id} recipe instruction, replacing with 'mins'.");
-      }
-      // バルクアップデートを実行
-      $this->updateNodeFieldRecipeInstructionBulk($con, $updateBatch);
-      $this->output()->writeln("Bulk update completed.");
+        // バルクアップデート用の配列を初期化
+        $updateBatch = [];
+        foreach ($results as $record) {
+            // レコードから必要なフィールド（revision_id, field_recipe_instruction_value）を取得
+            $revision_id = $record->revision_id;
+            $field_recipe_instruction_value = $record->field_recipe_instruction_value;
+            //　文字列置換ルール4
+            $search = 'minutes';
+            $replacement = 'mins';
+            // str_replace() を使用して文字列の置換を行う
+            $updated_value = str_replace($search, $replacement, $field_recipe_instruction_value);
+            // バルクアップデート用の配列に追加
+            $updateBatch[] = ['revision_id' => $revision_id, 'field_recipe_instruction_value' => $updated_value];
+            $this->output()->writeln("Found 'minutes' in node revision {$revision_id} recipe instruction, replacing with 'mins'.");
+        }
+        // バルクアップデートを実行
+        $this->bulkUpdate($con, 'node__field_recipe_instruction', 'revision_id' , 'field_recipe_instruction_value', $updateBatch);
+        $this->bulkUpdate($con, 'node_revision__field_recipe_instruction', 'revision_id' , 'field_recipe_instruction_value', $updateBatch);
+        $this->output()->writeln("Bulk update completed.");
     }
   }
 
@@ -267,101 +264,37 @@ class mcCommands extends DrushCommands {
             $updateBatch[] = ['vid' => $vid, 'title' => $updatedTitle];
         }
         // バルクアップデートを実行
-        $this->updateNodeTitleBulk($con, $updateBatch);
+        $this->bulkUpdate($con, 'node_field_data' , 'vid' , 'title', $updateBatch);
         $this->output()->writeln("Bulk update completed.");
     }
   }
 
-  // node__bodyバルクアップデート用のメソッド
-  private function updateNodeBodyBulk($con, $updateBatch) {
-    // ログを出力: Node Body をバルクアップデートする処理を開始
-    $this->output()->writeln("Bulk updating Node Body...");
+  private function bulkUpdate($con, $tableName , $bId , $field, $updateBatch) {
+    // ログを出力: バルクアップデート処理を開始
+    $this->output()->writeln("Bulk updating $tableName $field...");
     // バルクアップデート用の配列を準備
-    $cases = [];
-    $params = [];
-    foreach ($updateBatch as $index => $data) {
-        $entityId = $data['entity_id'];
-        $bodyValue = $data['body_value'];
-        // :entity_id_0 :entity_id_1 ユニークキーを生成
-        $keyEntity = ':entity_id_' . $index;
-        // :body_value_0 :body_value_1 ユニークキーを生成
-        $keyBody = ':body_value_' . $index;
-        // $cases配列と$params配列に追加.
-        // $cases配列にはエンティティIDのプレースホルダをキーとし、それに対応する本文のプレースホルダを値として格納
-        $cases[$keyEntity] = $keyBody;
-        // $params配列にはプレースホルダと実際の値のペアが格納
-        $params[$keyEntity] = $entityId;
-        $params[$keyBody] = $bodyValue;
-    }
-    // バルクアップデート用のクエリを構築
-    // テーブルにnode__bodyを指定してentity_idごとに値をセット
-    $query = "UPDATE {node__body} SET body_value = (CASE entity_id ";
-    // queryを構築:entity_id_0には:body_value_0を:entity_id_1には:body_value_1
-    foreach ($cases as $entityKey => $bodyKey) {
-        $query .= "WHEN $entityKey THEN $bodyKey ";
-    }
-    // プレースホルダの部分を作るarray_keys($params)は$paramsのキーをすべて取得、
-    // implode(',',はコンマ区切りで連結した文字列を返す。
-    $query .= "END) WHERE entity_id IN (" . implode(',', array_keys($params)) . ")";
-    // データベースを更新する
-    // クエリが実行されるときにプレースホルダに対応した値がバインドされる。
-    $con->query($query, $params);
-    // ログを出力: Node Body をバルクアップデートする処理を終了
-    $this->output()->writeln("Bulk update completed.");
-  }
-
-  // titleバルクアップデート用のメソッド
-  private function updateNodeTitleBulk($con, $updateBatch) {
-    // ログを出力: Node Title をバルクアップデートする処理を開始
-    $this->output()->writeln("Bulk updating Node Title...");    
-    // バルクアップデート用の配列を作成
     $caseStatement = [];
     $params = [];
-    // vidを配列に追加
-    $vids = [];
+    $ids = [];
     foreach ($updateBatch as $index => $data) {
-        $vid = $data['vid'];
-        $title = $data['title'];
-        $vids[] = $vid;
-        $caseStatement[] = "WHEN :vid_$index THEN :title_$index";
-        $params[":vid_$index"] = $vid;
-        $params[":title_$index"] = $title;
+        $id = $data[$bId];
+        $value = $data[$field];
+        if (!in_array($id, $ids)) {
+            // :id_0 :value_0 ユニークキーを生成
+            // $caseStatementにペアにしてクエリを追加していく
+            $caseStatement[] = "WHEN :id_$index THEN :value_$index";
+            // ここでバインド紐づけ
+            $params[":id_$index"] = $id;
+            $params[":value_$index"] = $value;
+            $ids[] = $id;
+        }
     }
     // バルクアップデート用のクエリを実行
-    $query = "UPDATE {node_field_data} SET title = (CASE vid " . implode(' ', $caseStatement) . " END) WHERE vid IN (" . implode(',', $vids) . ")";
+    // プレースホルダの部分を作るarray_keys($params)は$paramsのキーをすべて取得、
+    // implode(',',はコンマ区切りで連結した文字列を返す。
+    $query = "UPDATE {{$tableName}} SET $field = (CASE $bId " . implode(' ', $caseStatement) . " END) WHERE $bId IN (" . implode(',', $ids) . ")";
     $con->query($query, $params);
-    // node_field_revisionの方も更新
-    $query = "UPDATE {node_field_revision} SET title = (CASE vid " . implode(' ', $caseStatement) . " END) WHERE vid IN (" . implode(',', $vids) . ")";
-    $con->query($query, $params);
-    // ログを出力: Node Title をバルクアップデートする処理を終了
-    $this->output()->writeln("Bulk update completed.");
-  }
-
-  // recipe instruction バルクアップデート用のメソッド
-  private function updateNodeFieldRecipeInstructionBulk($con, $updateBatch) {
-    // ログを出力: Node Field Recipe Instruction をバルクアップデートする処理を開始
-    $this->output()->writeln("Bulk updating Node Field Recipe Instruction...");    
-    // バルクアップデート用の配列を作成
-    $caseStatement = [];
-    $params = [];
-    $revisionIds = []; // revision_idの配列を初期化
-    foreach ($updateBatch as $index => $data) {
-      $revision_id = $data['revision_id'];
-      $field_recipe_instruction_value = $data['field_recipe_instruction_value'];
-      // revision_idがすでに配列に含まれていないことを確認する
-      if (!in_array($revision_id, $revisionIds)) {
-        $caseStatement[] = "WHEN :revision_id_$index THEN :field_recipe_instruction_value_$index";
-        $params[":revision_id_$index"] = $revision_id;
-        $params[":field_recipe_instruction_value_$index"] = $field_recipe_instruction_value;
-        // revision_idを配列に追加
-        $revisionIds[] = $revision_id;
-      }
-    }
-    // バルクアップデート用のクエリを実行（node__field_recipe_instruction）
-    $con->query("UPDATE {node__field_recipe_instruction} SET field_recipe_instruction_value = (CASE revision_id " . implode(' ', $caseStatement) . " END) WHERE revision_id IN (" . implode(',', $revisionIds) . ")", $params);
-    // バルクアップデート用のクエリを実行（node_revision__field_recipe_instruction）
-    $con->query("UPDATE {node_revision__field_recipe_instruction} SET field_recipe_instruction_value = (CASE revision_id " . implode(' ', $caseStatement) . " END) WHERE revision_id IN (" . implode(',', $revisionIds) . ")", $params);
-    // ログを出力: Node Field Recipe Instruction をバルクアップデートする処理を終了
+    // ログを出力: バルクアップデート処理を終了
     $this->output()->writeln("Bulk update completed.");
   }
 
